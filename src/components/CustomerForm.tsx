@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Phone, Laptop } from "lucide-react";
+import { Users, Phone, Laptop, FileText, MessageSquare } from "lucide-react";
 
 export function CustomerForm() {
   const [customerData, setCustomerData] = useState({
     name: "",
     phone: "",
+    whatsapp: "",
+    document: "",
+    documentType: "CPF",
     deviceModel: "",
     deviceBrand: "",
     status: "Recebido"
@@ -42,6 +45,9 @@ export function CustomerForm() {
     setCustomerData({
       name: "",
       phone: "",
+      whatsapp: "",
+      document: "",
+      documentType: "CPF",
       deviceModel: "",
       deviceBrand: "",
       status: "Recebido"
@@ -95,6 +101,51 @@ export function CustomerForm() {
                     onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp</Label>
+                <div className="relative">
+                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="whatsapp"
+                    placeholder="(11) 99999-9999"
+                    className="pl-10"
+                    value={customerData.whatsapp}
+                    onChange={(e) => setCustomerData(prev => ({ ...prev, whatsapp: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="documentType">Tipo de Documento</Label>
+                <Select
+                  value={customerData.documentType}
+                  onValueChange={(value) => setCustomerData(prev => ({ ...prev, documentType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CPF">CPF</SelectItem>
+                    <SelectItem value="CNPJ">CNPJ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="document">{customerData.documentType}</Label>
+              <div className="relative">
+                <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="document"
+                  placeholder={customerData.documentType === "CPF" ? "000.000.000-00" : "00.000.000/0000-00"}
+                  className="pl-10"
+                  value={customerData.document}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, document: e.target.value }))}
+                />
               </div>
             </div>
 
