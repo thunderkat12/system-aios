@@ -1,12 +1,12 @@
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { User, Wrench } from "lucide-react";
+import { User, Wrench, MessageSquare } from "lucide-react";
 
 interface ServiceOrderData {
   customerName: string;
+  customerWhatsapp: string;
   deviceModel: string;
   repairType: string;
   technician: string;
@@ -40,14 +40,28 @@ export function FormFields({ osData, setOsData, repairTypes, technicians }: Form
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="deviceModel">Modelo do Aparelho *</Label>
-          <Input
-            id="deviceModel"
-            placeholder="Ex: Dell G3, MacBook Pro"
-            value={osData.deviceModel}
-            onChange={(e) => setOsData(prev => ({ ...prev, deviceModel: e.target.value }))}
-          />
+          <Label htmlFor="customerWhatsapp">WhatsApp do Cliente *</Label>
+          <div className="relative">
+            <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              id="customerWhatsapp"
+              placeholder="(11) 99999-9999"
+              className="pl-10"
+              value={osData.customerWhatsapp}
+              onChange={(e) => setOsData(prev => ({ ...prev, customerWhatsapp: e.target.value }))}
+            />
+          </div>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="deviceModel">Modelo do Aparelho *</Label>
+        <Input
+          id="deviceModel"
+          placeholder="Ex: Dell G3, MacBook Pro"
+          value={osData.deviceModel}
+          onChange={(e) => setOsData(prev => ({ ...prev, deviceModel: e.target.value }))}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

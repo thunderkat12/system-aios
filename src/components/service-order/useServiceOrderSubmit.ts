@@ -9,7 +9,7 @@ export function useServiceOrderSubmit() {
   const { toast } = useToast();
 
   const handleSubmit = async (osData: ServiceOrderData, resetForm: () => void) => {
-    if (!osData.customerName || !osData.deviceModel || !osData.repairType || !osData.technician) {
+    if (!osData.customerName || !osData.customerWhatsapp || !osData.deviceModel || !osData.repairType || !osData.technician) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -23,6 +23,7 @@ export function useServiceOrderSubmit() {
     
     const webhookData = {
       customerName: osData.customerName,
+      customerWhatsapp: osData.customerWhatsapp,
       deviceModel: osData.deviceModel,
       repairType: osData.repairType,
       technician: osData.technician,

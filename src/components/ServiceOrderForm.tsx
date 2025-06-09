@@ -11,6 +11,7 @@ import { REPAIR_TYPES, TECHNICIANS } from "./service-order/constants";
 export function ServiceOrderForm() {
   const [osData, setOsData] = useState<ServiceOrderData>({
     customerName: "",
+    customerWhatsapp: "",
     deviceModel: "",
     repairType: "",
     technician: "",
@@ -24,6 +25,7 @@ export function ServiceOrderForm() {
   const resetForm = () => {
     setOsData({
       customerName: "",
+      customerWhatsapp: "",
       deviceModel: "",
       repairType: "",
       technician: "",
