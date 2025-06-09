@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,9 +18,12 @@ export function ServiceOrderForm() {
     description: "",
     estimatedValue: ""
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const webhookUrl = "https://n8n.grapeassist.com/webhook/35fc1cbe-abc2-40dd-beb2-68fdc1e0dac5";
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!osData.customerName || !osData.deviceModel || !osData.repairType || !osData.technician) {
@@ -33,24 +35,75 @@ export function ServiceOrderForm() {
       return;
     }
 
+    setIsLoading(true);
     const osNumber = Math.floor(Math.random() * 90000) + 10000;
     
-    console.log("Gerando OS:", { ...osData, osNumber });
-    
-    toast({
-      title: "Ordem de Serviço Gerada!",
-      description: `OS Nº ${osNumber} criada para ${osData.customerName}`,
-    });
+    const webhookData = {
+      customerName: osData.customerName,
+      deviceModel: osData.deviceModel,
+      repairType: osData.repairType,
+      technician: osData.technician,
+      priority: osData.priority,
+      description: osData.description,
+      estimatedValue: osData.estimatedValue,
+      osNumber: osNumber,
+      timestamp: new Date().toISOString(),
+      company: "Hi-Tech Soluções"
+    };
 
-    setOsData({
-      customerName: "",
-      deviceModel: "",
-      repairType: "",
-      technician: "",
-      priority: "Normal",
-      description: "",
-      estimatedValue: ""
-    });
+    console.log("Enviando dados para webhook n8n:", webhookData);
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Ordem de Serviço Gerada!",
+          description: `OS Nº ${osNumber} criada para ${osData.customerName}. Notificação WhatsApp enviada automaticamente.`,
+        });
+
+        console.log("Webhook disparado com sucesso para n8n");
+        
+        setOsData({
+          customerName: "",
+          deviceModel: "",
+          repairType: "",
+          technician: "",
+          priority: "Normal",
+          description: "",
+          estimatedValue: ""
+        });
+      } else {
+        throw new Error("Falha ao enviar webhook");
+      }
+    } catch (error) {
+      console.error("Erro ao disparar webhook:", error);
+      
+      // Ainda gera a OS localmente mesmo se o webhook falhar
+      toast({
+        title: "OS Gerada (Webhook falhou)",
+        description: `OS Nº ${osNumber} criada para ${osData.customerName}. Erro na notificação automática.`,
+        variant: "destructive",
+      });
+      
+      setOsData({
+        customerName: "",
+        deviceModel: "",
+        repairType: "",
+        technician: "",
+        priority: "Normal",
+        description: "",
+        estimatedValue: ""
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const repairTypes = [
@@ -205,8 +258,8 @@ export function ServiceOrderForm() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full">
-              Gerar Ordem de Serviço
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Gerando OS e enviando notificação..." : "Gerar Ordem de Serviço"}
             </Button>
           </form>
         </CardContent>
