@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,11 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Calculator, Plus, Eye, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Calculator, Plus, Eye, CheckCircle, Clock, XCircle, Filter, Search } from "lucide-react";
+
+interface Budget {
+  id: number;
+  osNumber: string;
+  customerName: string;
+  device: string;
+  status: string;
+  laborValue: string;
+  partsValue: string;
+  totalValue: string;
+  createdAt: string;
+  services: string;
+  parts: string;
+  statusHistory: Array<{
+    status: string;
+    changedBy: string;
+    changedAt: string;
+  }>;
+}
 
 export function BudgetCenter() {
   const [showNewBudget, setShowNewBudget] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<string>("all");
   const [newBudget, setNewBudget] = useState({
     osNumber: "",
     customerName: "",
@@ -25,7 +47,7 @@ export function BudgetCenter() {
   const { toast } = useToast();
 
   // Dados mockados para demonstração
-  const budgets = [
+  const [budgets, setBudgets] = useState<Budget[]>([
     {
       id: 1,
       osNumber: "02741",
@@ -37,7 +59,11 @@ export function BudgetCenter() {
       totalValue: "R$ 450,00",
       createdAt: "2024-06-09",
       services: "Substituição de tela",
-      parts: "Tela 15.6\" Full HD"
+      parts: "Tela 15.6\" Full HD",
+      statusHistory: [
+        { status: "Aberta", changedBy: "Sistema", changedAt: "2024-06-09 10:00" },
+        { status: "Pendente", changedBy: "Daniel Victor", changedAt: "2024-06-09 14:30" }
+      ]
     },
     {
       id: 2,
@@ -50,7 +76,12 @@ export function BudgetCenter() {
       totalValue: "R$ 200,00",
       createdAt: "2024-06-08",
       services: "Troca de teclado",
-      parts: "Teclado ABNT2"
+      parts: "Teclado ABNT2",
+      statusHistory: [
+        { status: "Aberta", changedBy: "Sistema", changedAt: "2024-06-08 09:15" },
+        { status: "Pendente", changedBy: "Samuel", changedAt: "2024-06-08 11:00" },
+        { status: "Aprovado", changedBy: "Ana Costa", changedAt: "2024-06-08 16:45" }
+      ]
     },
     {
       id: 3,
@@ -63,9 +94,29 @@ export function BudgetCenter() {
       totalValue: "R$ 1.000,00",
       createdAt: "2024-06-07",
       services: "Troca de placa mãe",
-      parts: "Placa mãe MacBook Air"
+      parts: "Placa mãe MacBook Air",
+      statusHistory: [
+        { status: "Aberta", changedBy: "Sistema", changedAt: "2024-06-07 08:30" },
+        { status: "Pendente", changedBy: "Heinenger", changedAt: "2024-06-07 10:15" },
+        { status: "Rejeitado", changedBy: "Pedro Santos", changedAt: "2024-06-07 18:20" }
+      ]
     }
-  ];
+  ]);
+
+  const filteredBudgets = budgets.filter(budget => {
+    const matchesSearch = budget.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         budget.osNumber.includes(searchTerm) ||
+                         budget.device.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || budget.status === statusFilter;
+    
+    const matchesDate = dateFilter === "all" || 
+                       (dateFilter === "today" && budget.createdAt === new Date().toISOString().split('T')[0]) ||
+                       (dateFilter === "week" && new Date(budget.createdAt) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) ||
+                       (dateFilter === "month" && new Date(budget.createdAt) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +129,25 @@ export function BudgetCenter() {
       });
       return;
     }
+
+    const newBudgetItem: Budget = {
+      id: Date.now(),
+      osNumber: newBudget.osNumber,
+      customerName: newBudget.customerName,
+      device: newBudget.device,
+      status: "Pendente",
+      laborValue: newBudget.laborValue,
+      partsValue: newBudget.partsValue,
+      totalValue: newBudget.totalValue,
+      createdAt: new Date().toISOString().split('T')[0],
+      services: newBudget.services,
+      parts: newBudget.parts,
+      statusHistory: [
+        { status: "Aberta", changedBy: "Sistema", changedAt: new Date().toLocaleString('pt-BR') }
+      ]
+    };
+
+    setBudgets([newBudgetItem, ...budgets]);
 
     toast({
       title: "Orçamento criado!",
@@ -98,6 +168,27 @@ export function BudgetCenter() {
     setShowNewBudget(false);
   };
 
+  const handleStatusChange = (budgetId: number, newStatus: string) => {
+    const updatedBudgets = budgets.map(budget => {
+      if (budget.id === budgetId) {
+        const updatedHistory = [...budget.statusHistory, {
+          status: newStatus,
+          changedBy: "Usuário Atual",
+          changedAt: new Date().toLocaleString('pt-BR')
+        }];
+        return { ...budget, status: newStatus, statusHistory: updatedHistory };
+      }
+      return budget;
+    });
+
+    setBudgets(updatedBudgets);
+
+    toast({
+      title: "Status atualizado!",
+      description: `Status da OS alterado para ${newStatus}`,
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Aprovado":
@@ -106,6 +197,12 @@ export function BudgetCenter() {
         return "bg-yellow-100 text-yellow-800";
       case "Rejeitado":
         return "bg-red-100 text-red-800";
+      case "Em andamento":
+        return "bg-blue-100 text-blue-800";
+      case "Finalizada":
+        return "bg-purple-100 text-purple-800";
+      case "Cancelada":
+        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -177,8 +274,43 @@ export function BudgetCenter() {
         </Card>
       </div>
 
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Orçamentos</h2>
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por cliente, OS ou aparelho..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="Pendente">Pendente</SelectItem>
+              <SelectItem value="Aprovado">Aprovado</SelectItem>
+              <SelectItem value="Rejeitado">Rejeitado</SelectItem>
+              <SelectItem value="Em andamento">Em andamento</SelectItem>
+              <SelectItem value="Finalizada">Finalizada</SelectItem>
+              <SelectItem value="Cancelada">Cancelada</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as datas</SelectItem>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="week">Última semana</SelectItem>
+              <SelectItem value="month">Último mês</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Button onClick={() => setShowNewBudget(!showNewBudget)}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Orçamento
@@ -301,17 +433,33 @@ export function BudgetCenter() {
       )}
 
       <div className="space-y-4">
-        {budgets.map((budget) => (
+        {filteredBudgets.map((budget) => (
           <Card key={budget.id}>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <h3 className="font-medium">OS #{budget.osNumber}</h3>
-                    <Badge className={getStatusColor(budget.status)}>
-                      {getStatusIcon(budget.status)}
-                      <span className="ml-1">{budget.status}</span>
-                    </Badge>
+                    <Select
+                      value={budget.status}
+                      onValueChange={(value) => handleStatusChange(budget.id, value)}
+                    >
+                      <SelectTrigger className="w-auto h-auto p-0 border-none">
+                        <Badge className={getStatusColor(budget.status)}>
+                          {getStatusIcon(budget.status)}
+                          <span className="ml-1">{budget.status}</span>
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Aberta">Aberta</SelectItem>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                        <SelectItem value="Em andamento">Em andamento</SelectItem>
+                        <SelectItem value="Aprovado">Aprovado</SelectItem>
+                        <SelectItem value="Rejeitado">Rejeitado</SelectItem>
+                        <SelectItem value="Finalizada">Finalizada</SelectItem>
+                        <SelectItem value="Cancelada">Cancelada</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div>
@@ -345,6 +493,19 @@ export function BudgetCenter() {
                       <p className="font-bold text-primary">{budget.totalValue}</p>
                     </div>
                   </div>
+                  {budget.statusHistory.length > 1 && (
+                    <div className="mt-3 p-3 bg-muted rounded-lg">
+                      <h4 className="text-sm font-medium mb-2">Histórico de Status:</h4>
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        {budget.statusHistory.map((history, index) => (
+                          <div key={index}>
+                            <span className="font-medium">{history.status}</span> - 
+                            {history.changedBy} em {history.changedAt}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <Button variant="outline" size="sm">
                   <Eye className="h-4 w-4" />
@@ -354,6 +515,20 @@ export function BudgetCenter() {
           </Card>
         ))}
       </div>
+
+      {filteredBudgets.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-lg font-medium">Nenhum orçamento encontrado</p>
+            <p className="text-muted-foreground">
+              {searchTerm || statusFilter !== "all" || dateFilter !== "all" 
+                ? "Tente ajustar os filtros de busca" 
+                : "Crie seu primeiro orçamento"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -9,8 +10,9 @@ import { StockControl } from "@/components/StockControl";
 import { BudgetCenter } from "@/components/BudgetCenter";
 import { SearchCenter } from "@/components/SearchCenter";
 import { OSFinalization } from "@/components/OSFinalization";
+import { WebhookSettings } from "@/components/WebhookSettings";
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
@@ -33,6 +35,8 @@ const Index = () => {
         return <SearchCenter />;
       case 'finalization':
         return <OSFinalization />;
+      case 'webhooks':
+        return <WebhookSettings />;
       default:
         return <Dashboard />;
     }

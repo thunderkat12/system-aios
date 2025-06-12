@@ -7,10 +7,32 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Package, Plus, AlertTriangle, Search, Edit, Trash2 } from "lucide-react";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
+
+interface StockItem {
+  id: number;
+  name: string;
+  category: string;
+  quantity: number;
+  minQuantity: number;
+  price: string;
+  status: string;
+}
 
 export function StockControl() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [newItem, setNewItem] = useState({
     name: "",
     category: "",
@@ -21,7 +43,7 @@ export function StockControl() {
   const { toast } = useToast();
 
   // Dados mockados para demonstração
-  const stockItems = [
+  const [stockItems, setStockItems] = useState<StockItem[]>([
     {
       id: 1,
       name: "Tela 15.6\" Full HD",
@@ -67,7 +89,7 @@ export function StockControl() {
       price: "R$ 220,00",
       status: "Esgotado"
     }
-  ];
+  ]);
 
   const filteredItems = stockItems.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,6 +108,24 @@ export function StockControl() {
       return;
     }
 
+    const quantity = parseInt(newItem.quantity);
+    const minQuantity = parseInt(newItem.minQuantity);
+    let status = "Normal";
+    if (quantity === 0) status = "Esgotado";
+    else if (quantity <= minQuantity) status = "Baixo";
+
+    const newStockItem: StockItem = {
+      id: Date.now(),
+      name: newItem.name,
+      category: newItem.category,
+      quantity,
+      minQuantity,
+      price: newItem.price,
+      status
+    };
+
+    setStockItems([...stockItems, newStockItem]);
+
     toast({
       title: "Item adicionado!",
       description: `${newItem.name} foi adicionado ao estoque`,
@@ -99,6 +139,78 @@ export function StockControl() {
       price: ""
     });
     setShowAddForm(false);
+  };
+
+  const handleEditItem = (item: StockItem) => {
+    setEditingItem(item);
+    setNewItem({
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity.toString(),
+      minQuantity: item.minQuantity.toString(),
+      price: item.price
+    });
+    setShowAddForm(true);
+  };
+
+  const handleUpdateItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newItem.name || !newItem.quantity || !newItem.minQuantity || !newItem.price || !editingItem) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const quantity = parseInt(newItem.quantity);
+    const minQuantity = parseInt(newItem.minQuantity);
+    let status = "Normal";
+    if (quantity === 0) status = "Esgotado";
+    else if (quantity <= minQuantity) status = "Baixo";
+
+    const updatedItems = stockItems.map(item => 
+      item.id === editingItem.id 
+        ? {
+            ...item,
+            name: newItem.name,
+            category: newItem.category,
+            quantity,
+            minQuantity,
+            price: newItem.price,
+            status
+          }
+        : item
+    );
+
+    setStockItems(updatedItems);
+
+    toast({
+      title: "Item atualizado!",
+      description: `${newItem.name} foi atualizado com sucesso`,
+    });
+
+    setNewItem({
+      name: "",
+      category: "",
+      quantity: "",
+      minQuantity: "",
+      price: ""
+    });
+    setShowAddForm(false);
+    setEditingItem(null);
+  };
+
+  const handleDeleteItem = (itemId: number) => {
+    const updatedItems = stockItems.filter(item => item.id !== itemId);
+    setStockItems(updatedItems);
+
+    toast({
+      title: "Item excluído!",
+      description: "O item foi removido do estoque",
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -124,7 +236,7 @@ export function StockControl() {
           Controle de Estoque
         </h1>
         <p className="text-muted-foreground">
-          Cadastro de peças com aviso de baixo estoque (Beta)
+          Cadastro de peças com aviso de baixo estoque
         </p>
       </div>
 
@@ -165,7 +277,7 @@ export function StockControl() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar peças..."
+            placeholder="Buscar peças por nome ou categoria..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -180,11 +292,13 @@ export function StockControl() {
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Adicionar Novo Item</CardTitle>
-            <CardDescription>Cadastre uma nova peça no estoque</CardDescription>
+            <CardTitle>{editingItem ? "Editar Item" : "Adicionar Novo Item"}</CardTitle>
+            <CardDescription>
+              {editingItem ? "Atualize as informações da peça" : "Cadastre uma nova peça no estoque"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAddItem} className="space-y-4">
+            <form onSubmit={editingItem ? handleUpdateItem : handleAddItem} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="itemName">Nome da Peça *</Label>
@@ -237,8 +351,18 @@ export function StockControl() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="submit">Adicionar Item</Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                <Button type="submit">
+                  {editingItem ? "Atualizar Item" : "Adicionar Item"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingItem(null);
+                    setNewItem({ name: "", category: "", quantity: "", minQuantity: "", price: "" });
+                  }}
+                >
                   Cancelar
                 </Button>
               </div>
@@ -275,12 +399,34 @@ export function StockControl() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditItem(item)}
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Tem certeza que deseja excluir "{item.name}"? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteItem(item.id)}>
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardContent>
