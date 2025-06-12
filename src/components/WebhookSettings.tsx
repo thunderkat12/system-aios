@@ -148,7 +148,7 @@ export function WebhookSettings() {
           ? { 
               ...w, 
               lastTest: new Date().toLocaleString('pt-BR'),
-              lastTestStatus: response.ok ? 'success' : 'error'
+              lastTestStatus: (response.ok ? 'success' : 'error') as 'success' | 'error'
             }
           : w
       );
@@ -170,7 +170,7 @@ export function WebhookSettings() {
           ? { 
               ...w, 
               lastTest: new Date().toLocaleString('pt-BR'),
-              lastTestStatus: 'error'
+              lastTestStatus: 'error' as 'error'
             }
           : w
       );
