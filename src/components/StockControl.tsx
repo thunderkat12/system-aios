@@ -27,6 +27,8 @@ interface StockItem {
   minQuantity: number;
   price: string;
   status: string;
+  brand?: string;
+  type?: string;
 }
 
 export function StockControl() {
@@ -36,18 +38,21 @@ export function StockControl() {
   const [newItem, setNewItem] = useState({
     name: "",
     category: "",
+    brand: "",
+    type: "",
     quantity: "",
     minQuantity: "",
     price: ""
   });
   const { toast } = useToast();
 
-  // Dados mockados para demonstração
   const [stockItems, setStockItems] = useState<StockItem[]>([
     {
       id: 1,
       name: "Tela 15.6\" Full HD",
       category: "Telas",
+      brand: "Samsung",
+      type: "LCD",
       quantity: 2,
       minQuantity: 5,
       price: "R$ 280,00",
@@ -57,6 +62,8 @@ export function StockControl() {
       id: 2,
       name: "Teclado ABNT2 Notebook",
       category: "Teclados",
+      brand: "Dell",
+      type: "Mecânico",
       quantity: 8,
       minQuantity: 3,
       price: "R$ 85,00",
@@ -66,6 +73,8 @@ export function StockControl() {
       id: 3,
       name: "HD 1TB Seagate",
       category: "Armazenamento",
+      brand: "Seagate",
+      type: "HDD",
       quantity: 1,
       minQuantity: 2,
       price: "R$ 320,00",
@@ -75,6 +84,8 @@ export function StockControl() {
       id: 4,
       name: "SSD 256GB Kingston",
       category: "Armazenamento",
+      brand: "Kingston",
+      type: "SSD",
       quantity: 6,
       minQuantity: 3,
       price: "R$ 180,00",
@@ -84,6 +95,8 @@ export function StockControl() {
       id: 5,
       name: "Memória RAM 8GB DDR4",
       category: "Memórias",
+      brand: "Kingston",
+      type: "DDR4",
       quantity: 0,
       minQuantity: 4,
       price: "R$ 220,00",
@@ -93,8 +106,16 @@ export function StockControl() {
 
   const filteredItems = stockItems.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase())
+    item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (item.type && item.type.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const calculateStatus = (quantity: number, minQuantity: number) => {
+    if (quantity === 0) return "Esgotado";
+    if (quantity <= minQuantity) return "Baixo";
+    return "Normal";
+  };
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,14 +131,14 @@ export function StockControl() {
 
     const quantity = parseInt(newItem.quantity);
     const minQuantity = parseInt(newItem.minQuantity);
-    let status = "Normal";
-    if (quantity === 0) status = "Esgotado";
-    else if (quantity <= minQuantity) status = "Baixo";
+    const status = calculateStatus(quantity, minQuantity);
 
     const newStockItem: StockItem = {
       id: Date.now(),
       name: newItem.name,
       category: newItem.category,
+      brand: newItem.brand,
+      type: newItem.type,
       quantity,
       minQuantity,
       price: newItem.price,
@@ -131,14 +152,7 @@ export function StockControl() {
       description: `${newItem.name} foi adicionado ao estoque`,
     });
 
-    setNewItem({
-      name: "",
-      category: "",
-      quantity: "",
-      minQuantity: "",
-      price: ""
-    });
-    setShowAddForm(false);
+    resetForm();
   };
 
   const handleEditItem = (item: StockItem) => {
@@ -146,6 +160,8 @@ export function StockControl() {
     setNewItem({
       name: item.name,
       category: item.category,
+      brand: item.brand || "",
+      type: item.type || "",
       quantity: item.quantity.toString(),
       minQuantity: item.minQuantity.toString(),
       price: item.price
@@ -167,9 +183,7 @@ export function StockControl() {
 
     const quantity = parseInt(newItem.quantity);
     const minQuantity = parseInt(newItem.minQuantity);
-    let status = "Normal";
-    if (quantity === 0) status = "Esgotado";
-    else if (quantity <= minQuantity) status = "Baixo";
+    const status = calculateStatus(quantity, minQuantity);
 
     const updatedItems = stockItems.map(item => 
       item.id === editingItem.id 
@@ -177,6 +191,8 @@ export function StockControl() {
             ...item,
             name: newItem.name,
             category: newItem.category,
+            brand: newItem.brand,
+            type: newItem.type,
             quantity,
             minQuantity,
             price: newItem.price,
@@ -192,25 +208,32 @@ export function StockControl() {
       description: `${newItem.name} foi atualizado com sucesso`,
     });
 
+    resetForm();
+  };
+
+  const handleDeleteItem = (itemId: number) => {
+    const item = stockItems.find(item => item.id === itemId);
+    const updatedItems = stockItems.filter(item => item.id !== itemId);
+    setStockItems(updatedItems);
+
+    toast({
+      title: "Item excluído!",
+      description: `${item?.name} foi removido do estoque`,
+    });
+  };
+
+  const resetForm = () => {
     setNewItem({
       name: "",
       category: "",
+      brand: "",
+      type: "",
       quantity: "",
       minQuantity: "",
       price: ""
     });
     setShowAddForm(false);
     setEditingItem(null);
-  };
-
-  const handleDeleteItem = (itemId: number) => {
-    const updatedItems = stockItems.filter(item => item.id !== itemId);
-    setStockItems(updatedItems);
-
-    toast({
-      title: "Item excluído!",
-      description: "O item foi removido do estoque",
-    });
   };
 
   const getStatusColor = (status: string) => {
@@ -227,6 +250,10 @@ export function StockControl() {
   };
 
   const lowStockCount = stockItems.filter(item => item.status === "Baixo" || item.status === "Esgotado").length;
+  const totalValue = stockItems.reduce((sum, item) => {
+    const price = parseFloat(item.price.replace('R$ ', '').replace('.', '').replace(',', '.'));
+    return sum + (price * item.quantity);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -267,8 +294,8 @@ export function StockControl() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 5.420</div>
-            <p className="text-xs text-muted-foreground">Estimativa</p>
+            <div className="text-2xl font-bold">R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+            <p className="text-xs text-muted-foreground">Valor em estoque</p>
           </CardContent>
         </Card>
       </div>
@@ -277,7 +304,7 @@ export function StockControl() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar peças por nome ou categoria..."
+            placeholder="Buscar por nome, categoria, marca ou tipo..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -319,6 +346,26 @@ export function StockControl() {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brand">Marca</Label>
+                  <Input
+                    id="brand"
+                    placeholder="Ex: Dell, Samsung, etc."
+                    value={newItem.brand}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, brand: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Tipo</Label>
+                  <Input
+                    id="type"
+                    placeholder="Ex: LCD, SSD, DDR4, etc."
+                    value={newItem.type}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, type: e.target.value }))}
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="quantity">Quantidade *</Label>
@@ -354,15 +401,7 @@ export function StockControl() {
                 <Button type="submit">
                   {editingItem ? "Atualizar Item" : "Adicionar Item"}
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingItem(null);
-                    setNewItem({ name: "", category: "", quantity: "", minQuantity: "", price: "" });
-                  }}
-                >
+                <Button type="button" variant="outline" onClick={resetForm}>
                   Cancelar
                 </Button>
               </div>
@@ -383,9 +422,15 @@ export function StockControl() {
                       {item.status}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                  <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Categoria:</span> {item.category}
+                    </div>
+                    <div>
+                      <span className="font-medium">Marca:</span> {item.brand || "N/A"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Tipo:</span> {item.type || "N/A"}
                     </div>
                     <div>
                       <span className="font-medium">Quantidade:</span> {item.quantity}
@@ -440,7 +485,7 @@ export function StockControl() {
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-lg font-medium">Nenhum item encontrado</p>
             <p className="text-muted-foreground">
-              Tente buscar por outro nome ou categoria
+              Tente buscar por outro nome, categoria, marca ou tipo
             </p>
           </CardContent>
         </Card>

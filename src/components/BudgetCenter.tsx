@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Calculator, Plus, Eye, CheckCircle, Clock, XCircle, Filter, Search } from "lucide-react";
+import { Calculator, Plus, Eye, CheckCircle, Clock, XCircle, Filter, Search, History } from "lucide-react";
+
+interface StatusHistory {
+  status: string;
+  changedBy: string;
+  changedAt: string;
+}
 
 interface Budget {
   id: number;
@@ -21,11 +28,7 @@ interface Budget {
   createdAt: string;
   services: string;
   parts: string;
-  statusHistory: Array<{
-    status: string;
-    changedBy: string;
-    changedAt: string;
-  }>;
+  statusHistory: StatusHistory[];
 }
 
 export function BudgetCenter() {
@@ -33,6 +36,7 @@ export function BudgetCenter() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [expandedHistory, setExpandedHistory] = useState<number | null>(null);
   const [newBudget, setNewBudget] = useState({
     osNumber: "",
     customerName: "",
@@ -46,7 +50,6 @@ export function BudgetCenter() {
   });
   const { toast } = useToast();
 
-  // Dados mockados para demonstração
   const [budgets, setBudgets] = useState<Budget[]>([
     {
       id: 1,
@@ -106,14 +109,30 @@ export function BudgetCenter() {
   const filteredBudgets = budgets.filter(budget => {
     const matchesSearch = budget.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          budget.osNumber.includes(searchTerm) ||
-                         budget.device.toLowerCase().includes(searchTerm.toLowerCase());
+                         budget.device.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         budget.services.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || budget.status === statusFilter;
     
-    const matchesDate = dateFilter === "all" || 
-                       (dateFilter === "today" && budget.createdAt === new Date().toISOString().split('T')[0]) ||
-                       (dateFilter === "week" && new Date(budget.createdAt) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) ||
-                       (dateFilter === "month" && new Date(budget.createdAt) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+    let matchesDate = true;
+    if (dateFilter !== "all") {
+      const budgetDate = new Date(budget.createdAt);
+      const now = new Date();
+      
+      switch (dateFilter) {
+        case "today":
+          matchesDate = budgetDate.toDateString() === now.toDateString();
+          break;
+        case "week":
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          matchesDate = budgetDate >= weekAgo;
+          break;
+        case "month":
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          matchesDate = budgetDate >= monthAgo;
+          break;
+      }
+    }
     
     return matchesSearch && matchesStatus && matchesDate;
   });
@@ -135,7 +154,7 @@ export function BudgetCenter() {
       osNumber: newBudget.osNumber,
       customerName: newBudget.customerName,
       device: newBudget.device,
-      status: "Pendente",
+      status: "Aberta",
       laborValue: newBudget.laborValue,
       partsValue: newBudget.partsValue,
       totalValue: newBudget.totalValue,
@@ -185,7 +204,7 @@ export function BudgetCenter() {
 
     toast({
       title: "Status atualizado!",
-      description: `Status da OS alterado para ${newStatus}`,
+      description: `OS #${budgets.find(b => b.id === budgetId)?.osNumber} alterada para ${newStatus}`,
     });
   };
 
@@ -203,6 +222,8 @@ export function BudgetCenter() {
         return "bg-purple-100 text-purple-800";
       case "Cancelada":
         return "bg-gray-100 text-gray-800";
+      case "Aberta":
+        return "bg-orange-100 text-orange-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -215,6 +236,12 @@ export function BudgetCenter() {
       case "Pendente":
         return <Clock className="h-4 w-4" />;
       case "Rejeitado":
+        return <XCircle className="h-4 w-4" />;
+      case "Em andamento":
+        return <Clock className="h-4 w-4" />;
+      case "Finalizada":
+        return <CheckCircle className="h-4 w-4" />;
+      case "Cancelada":
         return <XCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -235,7 +262,7 @@ export function BudgetCenter() {
           Central de Orçamento
         </h1>
         <p className="text-muted-foreground">
-          Defina previamente o que será avaliado para aprovação de reparo
+          Gerencie orçamentos com controle completo de status e histórico
         </p>
       </div>
 
@@ -279,7 +306,7 @@ export function BudgetCenter() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por cliente, OS ou aparelho..."
+              placeholder="Buscar por cliente, OS, aparelho ou serviço..."
               className="pl-10"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -291,10 +318,11 @@ export function BudgetCenter() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="Aberta">Aberta</SelectItem>
               <SelectItem value="Pendente">Pendente</SelectItem>
+              <SelectItem value="Em andamento">Em andamento</SelectItem>
               <SelectItem value="Aprovado">Aprovado</SelectItem>
               <SelectItem value="Rejeitado">Rejeitado</SelectItem>
-              <SelectItem value="Em andamento">Em andamento</SelectItem>
               <SelectItem value="Finalizada">Finalizada</SelectItem>
               <SelectItem value="Cancelada">Cancelada</SelectItem>
             </SelectContent>
@@ -460,6 +488,14 @@ export function BudgetCenter() {
                         <SelectItem value="Cancelada">Cancelada</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExpandedHistory(expandedHistory === budget.id ? null : budget.id)}
+                    >
+                      <History className="h-4 w-4 mr-1" />
+                      Histórico
+                    </Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                     <div>
@@ -493,14 +529,21 @@ export function BudgetCenter() {
                       <p className="font-bold text-primary">{budget.totalValue}</p>
                     </div>
                   </div>
-                  {budget.statusHistory.length > 1 && (
-                    <div className="mt-3 p-3 bg-muted rounded-lg">
-                      <h4 className="text-sm font-medium mb-2">Histórico de Status:</h4>
-                      <div className="space-y-1 text-xs text-muted-foreground">
+                  
+                  {expandedHistory === budget.id && budget.statusHistory.length > 0 && (
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        Histórico de Alterações:
+                      </h4>
+                      <div className="space-y-2">
                         {budget.statusHistory.map((history, index) => (
-                          <div key={index}>
-                            <span className="font-medium">{history.status}</span> - 
-                            {history.changedBy} em {history.changedAt}
+                          <div key={index} className="flex items-center justify-between p-2 bg-background rounded border-l-2 border-primary">
+                            <div>
+                              <span className="font-medium text-sm">{history.status}</span>
+                              <p className="text-xs text-muted-foreground">por {history.changedBy}</p>
+                            </div>
+                            <span className="text-xs text-muted-foreground">{history.changedAt}</span>
                           </div>
                         ))}
                       </div>

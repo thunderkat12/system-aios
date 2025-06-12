@@ -1,5 +1,5 @@
 
-import { Users, FileText, History, Package, Calculator, Home, Wrench } from "lucide-react";
+import { Users, FileText, History, Package, Calculator, Home, Wrench, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -48,6 +48,11 @@ const menuItems = [
     title: "Central de Orçamento",
     icon: Calculator,
     view: "budget" as ViewType,
+  },
+  {
+    title: "Integrações",
+    icon: Settings,
+    view: "webhooks" as ViewType,
   },
 ];
 

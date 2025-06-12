@@ -1,47 +1,81 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, FileText, Package, DollarSign, Clock, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Users, FileText, Package, DollarSign, Clock, CheckCircle, RefreshCw, Send } from "lucide-react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { useState } from "react";
 
 export function Dashboard() {
-  const stats = [
+  const { stats, isLoading, updateStats, sendWebhookData } = useDashboardData();
+  const [isSendingWebhook, setIsSendingWebhook] = useState(false);
+  const { toast } = useToast();
+
+  // Webhook URL configurável - em um sistema real seria armazenado nas configurações
+  const dashboardWebhookUrl = "https://n8n.grapeassist.com/webhook/dashboard-stats";
+
+  const handleSendWebhook = async () => {
+    setIsSendingWebhook(true);
+    try {
+      const success = await sendWebhookData(dashboardWebhookUrl);
+      
+      toast({
+        title: success ? "Dados enviados!" : "Erro no envio",
+        description: success 
+          ? "Dados do dashboard enviados para o webhook" 
+          : "Falha ao enviar dados para o webhook",
+        variant: success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no envio",
+        description: "Falha ao conectar com o webhook",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingWebhook(false);
+    }
+  };
+
+  const dashboardStats = [
     {
       title: "Clientes Ativos",
-      value: "127",
+      value: stats.activeClients.toString(),
       description: "+12% este mês",
       icon: Users,
       color: "text-blue-600",
     },
     {
       title: "OS Abertas",
-      value: "23",
+      value: stats.openOS.toString(),
       description: "Em andamento",
       icon: FileText,
       color: "text-orange-600",
     },
     {
       title: "OS Finalizadas",
-      value: "89",
+      value: stats.completedOS.toString(),
       description: "Este mês",
       icon: CheckCircle,
       color: "text-green-600",
     },
     {
       title: "Faturamento",
-      value: "R$ 12.450",
+      value: `R$ ${stats.revenue.toLocaleString('pt-BR')}`,
       description: "+8% este mês",
       icon: DollarSign,
       color: "text-emerald-600",
     },
     {
       title: "Estoque Baixo",
-      value: "5",
+      value: stats.lowStockItems.toString(),
       description: "Itens para repor",
       icon: Package,
       color: "text-red-600",
     },
     {
       title: "Tempo Médio",
-      value: "3.2 dias",
+      value: stats.averageTime,
       description: "Por reparo",
       icon: Clock,
       color: "text-purple-600",
@@ -56,15 +90,34 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Visão geral do sistema - Hi-Tech Soluções em Informática
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Visão geral do sistema - Hi-Tech Soluções em Informática
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={updateStats}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Atualizar Dados
+          </Button>
+          <Button 
+            onClick={handleSendWebhook}
+            disabled={isSendingWebhook}
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {isSendingWebhook ? "Enviando..." : "Enviar Webhook"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stats.map((stat) => (
+        {dashboardStats.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
