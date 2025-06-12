@@ -13,4 +13,16 @@ export const REPAIR_TYPES = [
 
 export const TECHNICIANS = ["Daniel Victor", "Heinenger", "Samuel"];
 
-export const WEBHOOK_URL = "https://n8n.grapeassist.com/webhook/35fc1cbe-abc2-40dd-beb2-68fdc1e0dac5";
+// Webhooks para integração com n8n
+export const WEBHOOKS = {
+  ORDEM_SERVICO: "https://n8n.grapeassist.com/webhook/ordem_de_servico",
+  RELATORIO_OS: "https://n8n.grapeassist.com/webhook/relatorio-os"
+};
+
+export const PAYMENT_METHODS = [
+  "Dinheiro",
+  "Cartão de Crédito",
+  "Cartão de Débito",
+  "PIX",
+  "Transferência Bancária"
+];

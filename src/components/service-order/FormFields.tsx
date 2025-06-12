@@ -1,18 +1,24 @@
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { User, Wrench, MessageSquare } from "lucide-react";
+import { User, Wrench, MessageSquare, CreditCard, FileText } from "lucide-react";
 
 interface ServiceOrderData {
   customerName: string;
   customerWhatsapp: string;
+  customerCpfCnpj: string;
   deviceModel: string;
+  deviceBrand: string;
   repairType: string;
   technician: string;
   priority: string;
   description: string;
   estimatedValue: string;
+  paymentMethod: string;
+  observations: string;
+  problemDescription: string;
 }
 
 interface FormFieldsProps {
@@ -20,9 +26,10 @@ interface FormFieldsProps {
   setOsData: React.Dispatch<React.SetStateAction<ServiceOrderData>>;
   repairTypes: string[];
   technicians: string[];
+  paymentMethods: string[];
 }
 
-export function FormFields({ osData, setOsData, repairTypes, technicians }: FormFieldsProps) {
+export function FormFields({ osData, setOsData, repairTypes, technicians, paymentMethods }: FormFieldsProps) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -55,12 +62,48 @@ export function FormFields({ osData, setOsData, repairTypes, technicians }: Form
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="deviceModel">Modelo do Aparelho *</Label>
-        <Input
-          id="deviceModel"
-          placeholder="Ex: Dell G3, MacBook Pro"
-          value={osData.deviceModel}
-          onChange={(e) => setOsData(prev => ({ ...prev, deviceModel: e.target.value }))}
+        <Label htmlFor="customerCpfCnpj">CPF/CNPJ do Cliente</Label>
+        <div className="relative">
+          <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="customerCpfCnpj"
+            placeholder="000.000.000-00 ou 00.000.000/0000-00"
+            className="pl-10"
+            value={osData.customerCpfCnpj}
+            onChange={(e) => setOsData(prev => ({ ...prev, customerCpfCnpj: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="deviceBrand">Marca do Aparelho</Label>
+          <Input
+            id="deviceBrand"
+            placeholder="Ex: Dell, HP, Apple"
+            value={osData.deviceBrand}
+            onChange={(e) => setOsData(prev => ({ ...prev, deviceBrand: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="deviceModel">Modelo do Aparelho *</Label>
+          <Input
+            id="deviceModel"
+            placeholder="Ex: Dell G3, MacBook Pro"
+            value={osData.deviceModel}
+            onChange={(e) => setOsData(prev => ({ ...prev, deviceModel: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="problemDescription">Descrição do Problema *</Label>
+        <Textarea
+          id="problemDescription"
+          placeholder="Descreva detalhadamente o problema relatado pelo cliente..."
+          rows={3}
+          value={osData.problemDescription}
+          onChange={(e) => setOsData(prev => ({ ...prev, problemDescription: e.target.value }))}
         />
       </div>
 
@@ -106,7 +149,7 @@ export function FormFields({ osData, setOsData, repairTypes, technicians }: Form
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label htmlFor="priority">Prioridade</Label>
           <Select
@@ -133,16 +176,37 @@ export function FormFields({ osData, setOsData, repairTypes, technicians }: Form
             onChange={(e) => setOsData(prev => ({ ...prev, estimatedValue: e.target.value }))}
           />
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="paymentMethod">Forma de Pagamento</Label>
+          <Select
+            value={osData.paymentMethod}
+            onValueChange={(value) => setOsData(prev => ({ ...prev, paymentMethod: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              {paymentMethods.map((method) => (
+                <SelectItem key={method} value={method}>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    {method}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Descrição do Problema</Label>
+        <Label htmlFor="observations">Observações Internas</Label>
         <Textarea
-          id="description"
-          placeholder="Descreva detalhadamente o problema relatado pelo cliente..."
-          rows={4}
-          value={osData.description}
-          onChange={(e) => setOsData(prev => ({ ...prev, description: e.target.value }))}
+          id="observations"
+          placeholder="Observações para uso interno da equipe técnica..."
+          rows={3}
+          value={osData.observations}
+          onChange={(e) => setOsData(prev => ({ ...prev, observations: e.target.value }))}
         />
       </div>
     </>

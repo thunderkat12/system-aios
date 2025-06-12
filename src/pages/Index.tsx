@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -8,8 +7,10 @@ import { ServiceOrderForm } from "@/components/ServiceOrderForm";
 import { CustomerHistory } from "@/components/CustomerHistory";
 import { StockControl } from "@/components/StockControl";
 import { BudgetCenter } from "@/components/BudgetCenter";
+import { SearchCenter } from "@/components/SearchCenter";
+import { OSFinalization } from "@/components/OSFinalization";
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
@@ -28,6 +29,10 @@ const Index = () => {
         return <StockControl />;
       case 'budget':
         return <BudgetCenter />;
+      case 'search':
+        return <SearchCenter />;
+      case 'finalization':
+        return <OSFinalization />;
       default:
         return <Dashboard />;
     }

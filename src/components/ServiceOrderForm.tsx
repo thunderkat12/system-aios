@@ -6,18 +6,23 @@ import { FileText } from "lucide-react";
 import { FormFields, ServiceOrderData } from "./service-order/FormFields";
 import { NotificationInfo } from "./service-order/NotificationInfo";
 import { useServiceOrderSubmit } from "./service-order/useServiceOrderSubmit";
-import { REPAIR_TYPES, TECHNICIANS } from "./service-order/constants";
+import { REPAIR_TYPES, TECHNICIANS, PAYMENT_METHODS } from "./service-order/constants";
 
 export function ServiceOrderForm() {
   const [osData, setOsData] = useState<ServiceOrderData>({
     customerName: "",
     customerWhatsapp: "",
+    customerCpfCnpj: "",
     deviceModel: "",
+    deviceBrand: "",
     repairType: "",
     technician: "",
     priority: "Normal",
     description: "",
-    estimatedValue: ""
+    estimatedValue: "",
+    paymentMethod: "",
+    observations: "",
+    problemDescription: ""
   });
 
   const { handleSubmit, isLoading } = useServiceOrderSubmit();
@@ -26,12 +31,17 @@ export function ServiceOrderForm() {
     setOsData({
       customerName: "",
       customerWhatsapp: "",
+      customerCpfCnpj: "",
       deviceModel: "",
+      deviceBrand: "",
       repairType: "",
       technician: "",
       priority: "Normal",
       description: "",
-      estimatedValue: ""
+      estimatedValue: "",
+      paymentMethod: "",
+      observations: "",
+      problemDescription: ""
     });
   };
 
@@ -48,15 +58,15 @@ export function ServiceOrderForm() {
           Ordem de Serviço
         </h1>
         <p className="text-muted-foreground">
-          Geração automática de OS com preenchimento inteligente
+          Geração automática de OS com integração completa ao n8n
         </p>
       </div>
 
-      <Card className="max-w-2xl">
+      <Card className="max-w-4xl">
         <CardHeader>
           <CardTitle>Nova Ordem de Serviço</CardTitle>
           <CardDescription>
-            Preencha os dados para gerar uma nova OS. O tipo de reparo será sugerido automaticamente.
+            Preencha os dados para gerar uma nova OS. Todos os dados serão enviados automaticamente para o sistema de automação.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -66,12 +76,13 @@ export function ServiceOrderForm() {
               setOsData={setOsData}
               repairTypes={REPAIR_TYPES}
               technicians={TECHNICIANS}
+              paymentMethods={PAYMENT_METHODS}
             />
 
             <NotificationInfo />
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Gerando OS e enviando notificação..." : "Gerar Ordem de Serviço"}
+              {isLoading ? "Gerando OS e enviando para automação..." : "Gerar Ordem de Serviço"}
             </Button>
           </form>
         </CardContent>
