@@ -9,6 +9,63 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      atividades: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          referencia_id: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          referencia_id?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          referencia_id?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       CRM: {
         Row: {
           Agendamento: string | null
@@ -102,6 +159,45 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          estoque_minimo: number | null
+          id: string
+          marca: string | null
+          nome: string
+          quantidade: number
+          updated_at: string | null
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          estoque_minimo?: number | null
+          id?: string
+          marca?: string | null
+          nome: string
+          quantidade?: number
+          updated_at?: string | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          estoque_minimo?: number | null
+          id?: string
+          marca?: string | null
+          nome?: string
+          quantidade?: number
+          updated_at?: string | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: []
+      }
       n8n_chat_histories: {
         Row: {
           id: number
@@ -119,6 +215,62 @@ export type Database = {
           session_id?: string
         }
         Relationships: []
+      }
+      ordens_servico: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string
+          created_at: string | null
+          dispositivo: string
+          finalizada_em: string | null
+          id: string
+          numero_os: string
+          observacoes: string | null
+          status: string | null
+          tecnico_responsavel: string
+          tipo_reparo: string
+          updated_at: string | null
+          valor: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          cliente_nome: string
+          created_at?: string | null
+          dispositivo: string
+          finalizada_em?: string | null
+          id?: string
+          numero_os: string
+          observacoes?: string | null
+          status?: string | null
+          tecnico_responsavel: string
+          tipo_reparo: string
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          cliente_nome?: string
+          created_at?: string | null
+          dispositivo?: string
+          finalizada_em?: string | null
+          id?: string
+          numero_os?: string
+          observacoes?: string | null
+          status?: string | null
+          tecnico_responsavel?: string
+          tipo_reparo?: string
+          updated_at?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_servico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -162,6 +314,33 @@ export type Database = {
           id?: number
           name?: string | null
           price?: number | null
+        }
+        Relationships: []
+      }
+      tecnicos: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
         }
         Relationships: []
       }

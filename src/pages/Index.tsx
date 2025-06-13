@@ -20,7 +20,7 @@ const Index = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onViewChange={setCurrentView} />;
       case 'customers':
         return <CustomerForm />;
       case 'service-orders':
@@ -38,7 +38,7 @@ const Index = () => {
       case 'webhooks':
         return <WebhookSettings />;
       default:
-        return <Dashboard />;
+        return <Dashboard onViewChange={setCurrentView} />;
     }
   };
 

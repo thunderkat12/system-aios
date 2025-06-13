@@ -3,26 +3,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Users, FileText, Package, DollarSign, Clock, CheckCircle, RefreshCw, Send } from "lucide-react";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useSupabaseDashboard } from "@/hooks/useSupabaseDashboard";
 import { useState } from "react";
+import type { ViewType } from "@/pages/Index";
 
-export function Dashboard() {
-  const { stats, isLoading, updateStats, sendWebhookData } = useDashboardData();
+interface DashboardProps {
+  onViewChange?: (view: ViewType) => void;
+}
+
+export function Dashboard({ onViewChange }: DashboardProps) {
+  const { stats, isLoading, refreshData, sendWebhookData } = useSupabaseDashboard();
   const [isSendingWebhook, setIsSendingWebhook] = useState(false);
   const { toast } = useToast();
-
-  // Webhook URL configurável - em um sistema real seria armazenado nas configurações
-  const dashboardWebhookUrl = "https://n8n.grapeassist.com/webhook/dashboard-stats";
 
   const handleSendWebhook = async () => {
     setIsSendingWebhook(true);
     try {
-      const success = await sendWebhookData(dashboardWebhookUrl);
+      const success = await sendWebhookData();
       
       toast({
-        title: success ? "Dados enviados!" : "Erro no envio",
+        title: success ? "Webhook enviado com sucesso!" : "Erro no envio",
         description: success 
-          ? "Dados do dashboard enviados para o webhook" 
+          ? "Dados do dashboard enviados para n8n com sucesso" 
           : "Falha ao enviar dados para o webhook",
         variant: success ? "default" : "destructive",
       });
@@ -37,13 +39,20 @@ export function Dashboard() {
     }
   };
 
+  const handleCardClick = (view: ViewType) => {
+    if (onViewChange) {
+      onViewChange(view);
+    }
+  };
+
   const dashboardStats = [
     {
       title: "Clientes Ativos",
       value: stats.activeClients.toString(),
-      description: "+12% este mês",
+      description: "Total de clientes",
       icon: Users,
       color: "text-blue-600",
+      clickAction: () => handleCardClick("customers")
     },
     {
       title: "OS Abertas",
@@ -51,20 +60,23 @@ export function Dashboard() {
       description: "Em andamento",
       icon: FileText,
       color: "text-orange-600",
+      clickAction: () => handleCardClick("service-orders")
     },
     {
       title: "OS Finalizadas",
       value: stats.completedOS.toString(),
-      description: "Este mês",
+      description: "Concluídas",
       icon: CheckCircle,
       color: "text-green-600",
+      clickAction: () => handleCardClick("history")
     },
     {
       title: "Faturamento",
       value: `R$ ${stats.revenue.toLocaleString('pt-BR')}`,
-      description: "+8% este mês",
+      description: "Total arrecadado",
       icon: DollarSign,
       color: "text-emerald-600",
+      clickAction: () => handleCardClick("budget")
     },
     {
       title: "Estoque Baixo",
@@ -72,6 +84,7 @@ export function Dashboard() {
       description: "Itens para repor",
       icon: Package,
       color: "text-red-600",
+      clickAction: () => handleCardClick("stock")
     },
     {
       title: "Tempo Médio",
@@ -79,13 +92,8 @@ export function Dashboard() {
       description: "Por reparo",
       icon: Clock,
       color: "text-purple-600",
+      clickAction: () => handleCardClick("history")
     },
-  ];
-
-  const technicians = [
-    { name: "Daniel Victor", activeJobs: 8, completedJobs: 34 },
-    { name: "Heinenger", activeJobs: 7, completedJobs: 28 },
-    { name: "Samuel", activeJobs: 8, completedJobs: 27 },
   ];
 
   return (
@@ -100,7 +108,7 @@ export function Dashboard() {
         <div className="flex gap-2">
           <Button 
             variant="outline" 
-            onClick={updateStats}
+            onClick={refreshData}
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -118,7 +126,11 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {dashboardStats.map((stat) => (
-          <Card key={stat.title}>
+          <Card 
+            key={stat.title} 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={stat.clickAction}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
@@ -132,14 +144,14 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick("history")}>
           <CardHeader>
             <CardTitle>Técnicos Responsáveis</CardTitle>
             <CardDescription>Performance da equipe</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {technicians.map((tech) => (
+              {stats.technicians.map((tech) => (
                 <div key={tech.name} className="flex items-center justify-between p-3 bg-card rounded-lg">
                   <div>
                     <p className="font-medium">{tech.name}</p>
@@ -157,37 +169,26 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => handleCardClick("history")}>
           <CardHeader>
             <CardTitle>Últimas Atividades</CardTitle>
             <CardDescription>Movimentações recentes</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center gap-3 p-2 border-l-2 border-primary bg-card rounded">
-                <FileText className="h-4 w-4 text-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Nova OS #02741</p>
-                  <p className="text-xs text-muted-foreground">Notebook Dell G3 - Samuel</p>
+              {stats.recentActividades.map((activity) => (
+                <div key={activity.id} className="flex items-center gap-3 p-2 border-l-2 border-primary bg-card rounded">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.description}</p>
+                    <p className="text-xs text-muted-foreground">Atividade do sistema</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{activity.time}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">2min</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 border-l-2 border-green-500 bg-card rounded">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">OS #02738 finalizada</p>
-                  <p className="text-xs text-muted-foreground">MacBook Pro - Daniel</p>
-                </div>
-                <span className="text-xs text-muted-foreground">15min</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 border-l-2 border-orange-500 bg-card rounded">
-                <Package className="h-4 w-4 text-orange-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Estoque baixo</p>
-                  <p className="text-xs text-muted-foreground">Tela 15.6" - 2 unidades</p>
-                </div>
-                <span className="text-xs text-muted-foreground">1h</span>
-              </div>
+              ))}
+              {stats.recentActivities.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma atividade recente</p>
+              )}
             </div>
           </CardContent>
         </Card>
