@@ -61,10 +61,13 @@ export function useSupabaseDashboard() {
       const faturamentoTotal = osFinalizadas?.reduce((total, os) => total + (Number(os.valor) || 0), 0) || 0;
 
       // Buscar itens com estoque baixo
-      const { data: estoqueBaixo } = await supabase
+      const { data: estoque } = await supabase
         .from('estoque')
-        .select('*')
-        .lt('quantidade', 5);
+        .select('*');
+
+      const estoqueBaixo = estoque?.filter(item => 
+        item.quantidade <= (item.estoque_minimo || 5) || item.quantidade === 0
+      ) || [];
 
       // Buscar técnicos e suas estatísticas
       const { data: tecnicos } = await supabase
@@ -105,16 +108,33 @@ export function useSupabaseDashboard() {
         id: atividade.id,
         type: atividade.tipo,
         description: atividade.descricao,
-        time: getTimeAgo(atividade.created_at)
+        time: getTimeAgo(atividade.created_at || '')
       })) || [];
+
+      // Calcular tempo médio de reparo
+      let averageTime = "0 dias";
+      if (osFinalizadas && osFinalizadas.length > 0) {
+        const temposReparo = osFinalizadas
+          .filter(os => os.created_at && os.finalizada_em)
+          .map(os => {
+            const inicio = new Date(os.created_at!);
+            const fim = new Date(os.finalizada_em!);
+            return Math.ceil((fim.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24));
+          });
+
+        if (temposReparo.length > 0) {
+          const mediaEmDias = temposReparo.reduce((a, b) => a + b, 0) / temposReparo.length;
+          averageTime = `${mediaEmDias.toFixed(1)} dias`;
+        }
+      }
 
       setStats({
         activeClients: clientes?.length || 0,
         openOS: osAbertas?.length || 0,
         completedOS: osFinalizadas?.length || 0,
         revenue: faturamentoTotal,
-        lowStockItems: estoqueBaixo?.length || 0,
-        averageTime: "3.2 dias", // Pode ser calculado com base nas datas
+        lowStockItems: estoqueBaixo.length,
+        averageTime,
         technicians: technicianStats,
         recentActivities
       });
