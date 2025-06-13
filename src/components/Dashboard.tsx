@@ -176,7 +176,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.recentActividades.map((activity) => (
+              {stats.recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-center gap-3 p-2 border-l-2 border-primary bg-card rounded">
                   <FileText className="h-4 w-4 text-primary" />
                   <div className="flex-1">
