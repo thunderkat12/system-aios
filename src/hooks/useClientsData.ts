@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ActivityLogger } from '@/components/ActivityLogger'; // ADICIONADO
 
 export interface Client {
   id: string;
@@ -52,6 +53,9 @@ export function useClientsData() {
         console.error('Erro ao adicionar cliente:', error);
         return { data: null, error };
       }
+
+      // REGISTRA ATIVIDADE: novo cliente
+      await ActivityLogger.logNewClient(client.nome);
 
       await fetchClients();
       return { data, error: null };

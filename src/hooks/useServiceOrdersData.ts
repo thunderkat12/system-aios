@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ActivityLogger } from '@/components/ActivityLogger'; // ADICIONADO
 
 export interface ServiceOrder {
   id: string;
@@ -58,6 +59,9 @@ export function useServiceOrdersData() {
         return { data: null, error };
       }
 
+      // LOG de criação de OS
+      await ActivityLogger.logNewOS(data.numero_os, data.cliente_nome);
+
       await fetchServiceOrders();
       return { data, error: null };
     } catch (error) {
@@ -88,6 +92,13 @@ export function useServiceOrdersData() {
       if (error) {
         console.error('Erro ao atualizar OS:', error);
         return { data: null, error };
+      }
+
+      // LOG de atualização de OS:
+      if (order.status === 'Finalizada') {
+        await ActivityLogger.logCompletedOS(data.numero_os, data.cliente_nome);
+      } else if (order.status) {
+        await ActivityLogger.logEditOS(data.numero_os, data.cliente_nome);
       }
 
       await fetchServiceOrders();
