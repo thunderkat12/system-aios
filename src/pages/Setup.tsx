@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,16 @@ const Setup = () => {
   const [nomeEmpresa, setNomeEmpresa] = useState('');
   const [temaPrimario, setTemaPrimario] = useState('#2563eb');
   const [temaSecundario, setTemaSecundario] = useState('#64748b');
-  const [isLoading, setIsLoading] = useState(false);
-  const { createConfig } = useEmpresaConfig();
+  const [formLoading, setFormLoading] = useState(false);
+  const { createConfig, config, hasConfig, isLoading: configLoading } = useEmpresaConfig();
   const navigate = useNavigate();
+
+  // Redireciona automaticamente para o dashboard se já houver configuração (protege duplo setup)
+  useEffect(() => {
+    if (hasConfig && config) {
+      navigate('/', { replace: true });
+    }
+  }, [hasConfig, config, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,21 +29,41 @@ const Setup = () => {
     if (!nomeEmpresa.trim()) {
       return;
     }
-
-    setIsLoading(true);
-    
+    setFormLoading(true);
+    // Cria configuração da empresa
     const result = await createConfig({
       nome_empresa: nomeEmpresa.trim(),
       tema_primario: temaPrimario,
       tema_secundario: temaSecundario
     });
 
-    if (result.success) {
-      navigate('/');
-    }
-    
-    setIsLoading(false);
+    // Redirecionamento agora é feito pelo useEffect acima,
+    // que detecta a existência da configuração salva e envia para o dashboard.
+    setFormLoading(false);
   };
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando sistema...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Exibe loading específico durante o submit do setup
+  if (formLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Salvando configuração inicial...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -61,7 +88,7 @@ const Setup = () => {
                 value={nomeEmpresa}
                 onChange={(e) => setNomeEmpresa(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={formLoading}
               />
             </div>
 
@@ -81,14 +108,14 @@ const Setup = () => {
                       value={temaPrimario}
                       onChange={(e) => setTemaPrimario(e.target.value)}
                       className="w-16 h-10 p-1 border rounded"
-                      disabled={isLoading}
+                      disabled={formLoading}
                     />
                     <Input
                       type="text"
                       value={temaPrimario}
                       onChange={(e) => setTemaPrimario(e.target.value)}
                       placeholder="#2563eb"
-                      disabled={isLoading}
+                      disabled={formLoading}
                     />
                   </div>
                 </div>
@@ -102,22 +129,22 @@ const Setup = () => {
                       value={temaSecundario}
                       onChange={(e) => setTemaSecundario(e.target.value)}
                       className="w-16 h-10 p-1 border rounded"
-                      disabled={isLoading}
+                      disabled={formLoading}
                     />
                     <Input
                       type="text"
                       value={temaSecundario}
                       onChange={(e) => setTemaSecundario(e.target.value)}
                       placeholder="#64748b"
-                      disabled={isLoading}
+                      disabled={formLoading}
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || !nomeEmpresa.trim()}>
-              {isLoading ? "Configurando..." : "Salvar e Continuar"}
+            <Button type="submit" className="w-full" disabled={formLoading || !nomeEmpresa.trim()}>
+              {formLoading ? "Configurando..." : "Salvar e Continuar"}
             </Button>
           </form>
         </CardContent>
