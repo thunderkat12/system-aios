@@ -32,22 +32,20 @@ export function useEmpresaConfig() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('empresa_config')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      // Usar rpc ou consulta SQL direta para acessar a nova tabela
+      const { data, error } = await supabase.rpc('get_empresa_config', { p_user_id: user.id });
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading empresa config:', error);
         return;
       }
 
-      if (data) {
-        setConfig(data);
+      if (data && data.length > 0) {
+        const configData = data[0] as EmpresaConfig;
+        setConfig(configData);
         setHasConfig(true);
         // Aplicar tema
-        applyTheme(data.tema_primario, data.tema_secundario);
+        applyTheme(configData.tema_primario, configData.tema_secundario);
       } else {
         setHasConfig(false);
       }
@@ -62,30 +60,34 @@ export function useEmpresaConfig() {
     if (!user) return { success: false, error: 'Usuário não autenticado' };
 
     try {
-      const { data, error } = await supabase
-        .from('empresa_config')
-        .insert({
-          user_id: user.id,
-          ...configData
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('create_empresa_config', {
+        p_user_id: user.id,
+        p_nome_empresa: configData.nome_empresa,
+        p_tema_primario: configData.tema_primario,
+        p_tema_secundario: configData.tema_secundario,
+        p_webhook_url: configData.webhook_url || null
+      });
 
       if (error) {
         console.error('Error creating config:', error);
         return { success: false, error: error.message };
       }
 
-      setConfig(data);
-      setHasConfig(true);
-      applyTheme(data.tema_primario, data.tema_secundario);
+      if (data && data.length > 0) {
+        const newConfig = data[0] as EmpresaConfig;
+        setConfig(newConfig);
+        setHasConfig(true);
+        applyTheme(newConfig.tema_primario, newConfig.tema_secundario);
 
-      toast({
-        title: "Configuração salva!",
-        description: "Sua conta foi configurada com sucesso.",
-      });
+        toast({
+          title: "Configuração salva!",
+          description: "Sua conta foi configurada com sucesso.",
+        });
 
-      return { success: true, data };
+        return { success: true, data: newConfig };
+      }
+
+      return { success: false, error: 'Falha ao criar configuração' };
     } catch (error: any) {
       console.error('Error creating config:', error);
       return { success: false, error: error.message };
@@ -96,35 +98,39 @@ export function useEmpresaConfig() {
     if (!user || !config) return { success: false, error: 'Configuração não encontrada' };
 
     try {
-      const { data, error } = await supabase
-        .from('empresa_config')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc('update_empresa_config', {
+        p_user_id: user.id,
+        p_nome_empresa: updates.nome_empresa || config.nome_empresa,
+        p_tema_primario: updates.tema_primario || config.tema_primario,
+        p_tema_secundario: updates.tema_secundario || config.tema_secundario,
+        p_webhook_url: updates.webhook_url !== undefined ? updates.webhook_url : config.webhook_url
+      });
 
       if (error) {
         console.error('Error updating config:', error);
         return { success: false, error: error.message };
       }
 
-      setConfig(data);
-      if (updates.tema_primario || updates.tema_secundario) {
-        applyTheme(
-          updates.tema_primario || config.tema_primario, 
-          updates.tema_secundario || config.tema_secundario
-        );
+      if (data && data.length > 0) {
+        const updatedConfig = data[0] as EmpresaConfig;
+        setConfig(updatedConfig);
+        
+        if (updates.tema_primario || updates.tema_secundario) {
+          applyTheme(
+            updates.tema_primario || config.tema_primario, 
+            updates.tema_secundario || config.tema_secundario
+          );
+        }
+
+        toast({
+          title: "Configuração atualizada!",
+          description: "Suas alterações foram salvas com sucesso.",
+        });
+
+        return { success: true, data: updatedConfig };
       }
 
-      toast({
-        title: "Configuração atualizada!",
-        description: "Suas alterações foram salvas com sucesso.",
-      });
-
-      return { success: true, data };
+      return { success: false, error: 'Falha ao atualizar configuração' };
     } catch (error: any) {
       console.error('Error updating config:', error);
       return { success: false, error: error.message };
