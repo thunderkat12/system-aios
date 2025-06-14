@@ -111,7 +111,7 @@ export function useSupabaseDashboard() {
         type: atividade.tipo,
         description: atividade.descricao,
         time: getTimeAgo(atividade.created_at || ''),
-        user: atividade.usuario_nome || 'Sistema',
+        user: "Sistema",
       })) || [];
 
       // Calcular tempo médio de reparo
