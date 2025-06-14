@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, Palette } from "lucide-react";
 import { useEmpresaConfig } from '@/hooks/useEmpresaConfig';
+import { useAuth } from '@/hooks/useAuth';
 
 const Setup = () => {
   const [nomeEmpresa, setNomeEmpresa] = useState('');
@@ -14,14 +15,23 @@ const Setup = () => {
   const [temaSecundario, setTemaSecundario] = useState('#64748b');
   const [formLoading, setFormLoading] = useState(false);
   const { createConfig, config, hasConfig, isLoading: configLoading } = useEmpresaConfig();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Redireciona automaticamente para o dashboard se já houver configuração (protege duplo setup)
+  // Redirect to login if not authenticated
   useEffect(() => {
-    if (hasConfig && config) {
+    if (!authLoading && !isAuthenticated) {
       navigate('/', { replace: true });
     }
-  }, [hasConfig, config, navigate]);
+  }, [authLoading, isAuthenticated, navigate]);
+
+  // Redirect to dashboard if already has config
+  useEffect(() => {
+    if (!configLoading && hasConfig && config) {
+      console.log('Setup already complete, redirecting to dashboard');
+      navigate('/', { replace: true });
+    }
+  }, [hasConfig, config, configLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,20 +39,29 @@ const Setup = () => {
     if (!nomeEmpresa.trim()) {
       return;
     }
-    setFormLoading(true);
-    // Cria configuração da empresa
-    const result = await createConfig({
-      nome_empresa: nomeEmpresa.trim(),
-      tema_primario: temaPrimario,
-      tema_secundario: temaSecundario
-    });
 
-    // Redirecionamento agora é feito pelo useEffect acima,
-    // que detecta a existência da configuração salva e envia para o dashboard.
-    setFormLoading(false);
+    setFormLoading(true);
+    
+    try {
+      const result = await createConfig({
+        nome_empresa: nomeEmpresa.trim(),
+        tema_primario: temaPrimario,
+        tema_secundario: temaSecundario
+      });
+
+      if (result.success) {
+        console.log('Setup complete, redirecting to dashboard');
+        navigate('/', { replace: true });
+      }
+    } catch (error) {
+      console.error('Setup error:', error);
+    } finally {
+      setFormLoading(false);
+    }
   };
 
-  if (configLoading) {
+  // Show loading while checking auth/config
+  if (authLoading || configLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -53,7 +72,12 @@ const Setup = () => {
     );
   }
 
-  // Exibe loading específico durante o submit do setup
+  // Don't render if not authenticated (will be redirected)
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // Show loading during form submission
   if (formLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

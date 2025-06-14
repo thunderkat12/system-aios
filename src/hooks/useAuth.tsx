@@ -21,68 +21,74 @@ export function useAuth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        loadUserProfile(session.user);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth event:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Use setTimeout to prevent auth state deadlock
-          setTimeout(async () => {
-            try {
-              const { data: profile } = await supabase
-                .from('usuarios')
-                .select('id, email, cargo, nome_completo, created_at')
-                .eq('email', session.user.email)
-                .eq('ativo', true)
-                .single();
-
-              if (profile) {
-                setUserProfile({
-                  id: profile.id,
-                  email: profile.email,
-                  role: profile.cargo as 'admin' | 'tecnico' | 'atendente',
-                  full_name: profile.nome_completo,
-                  created_at: profile.created_at
-                });
-              }
-            } catch (error) {
-              console.log('User profile not found in usuarios table');
-            }
-          }, 0);
+          await loadUserProfile(session.user);
         } else {
           setUserProfile(null);
+          setIsLoading(false);
         }
-        
-        setIsLoading(false);
       }
     );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const loadUserProfile = async (user: User) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('usuarios')
+        .select('id, email, cargo, nome_completo, created_at')
+        .eq('email', user.email)
+        .eq('ativo', true)
+        .single();
+
+      if (error) {
+        console.log('Profile not found, user needs to complete registration');
+        setUserProfile(null);
+      } else if (profile) {
+        setUserProfile({
+          id: profile.id,
+          email: profile.email,
+          role: profile.cargo as 'admin' | 'tecnico' | 'atendente',
+          full_name: profile.nome_completo,
+          created_at: profile.created_at
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'tecnico' | 'atendente') => {
     try {
-      // Validate inputs to prevent injection attacks
       if (!email || !password || !fullName || !role) {
         throw new Error('Todos os campos são obrigatórios');
       }
 
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             full_name: fullName.trim(),
             role: role
@@ -92,7 +98,7 @@ export function useAuth() {
 
       if (error) throw error;
 
-      // Create user profile in our usuarios table
+      // Create user profile in usuarios table
       if (data.user) {
         const { error: profileError } = await supabase
           .from('usuarios')
@@ -122,7 +128,7 @@ export function useAuth() {
       if (error.message?.includes('already registered')) {
         errorMessage = 'Este email já está cadastrado';
       } else if (error.message?.includes('password')) {
-        errorMessage = 'Senha deve ter pelo menos 12 caracteres com maiúscula, minúscula, número e símbolo';
+        errorMessage = 'Senha deve ter pelo menos 6 caracteres';
       } else if (error.message?.includes('email')) {
         errorMessage = 'Email inválido';
       }
@@ -140,7 +146,7 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     const identifier = email.toLowerCase().trim();
     
-    // Check rate limit before attempting login
+    // Check rate limit
     const rateCheck = authRateLimit.checkRateLimit(identifier);
     if (!rateCheck.allowed) {
       const minutes = Math.ceil((rateCheck.timeRemaining || 0) / 60);
@@ -153,9 +159,8 @@ export function useAuth() {
     }
 
     try {
-      // Validar apenas se os campos estão vazios
       if (!email || !password) {
-        throw new Error();
+        throw new Error('Email e senha são obrigatórios');
       }
 
       const { error } = await supabase.auth.signInWithPassword({
@@ -164,7 +169,6 @@ export function useAuth() {
       });
 
       if (error) {
-        // Record failed attempt
         authRateLimit.recordAttempt(identifier, false);
         
         const remaining = authRateLimit.getRemainingAttempts(identifier);
@@ -180,7 +184,6 @@ export function useAuth() {
         return { success: false, error: "Usuário ou senha inválidos." };
       }
 
-      // Record successful attempt
       authRateLimit.recordAttempt(identifier, true);
 
       toast({
@@ -189,8 +192,7 @@ export function useAuth() {
       });
 
       return { success: true, error: null };
-    } catch {
-      // Record failed attempt
+    } catch (error: any) {
       authRateLimit.recordAttempt(identifier, false);
       
       toast({

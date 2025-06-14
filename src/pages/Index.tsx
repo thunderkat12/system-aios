@@ -26,46 +26,45 @@ export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' 
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
-  const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
+  const { userProfile, isLoading: authLoading, signOut, isAuthenticated } = useAuth();
   const { config, isLoading: configLoading, hasConfig, loadConfig } = useEmpresaConfig();
   const navigate = useNavigate();
 
   // Bootstrap admin user
   useAdminBootstrap();
 
-  // Garantir que a empresa seja carregada após login ou reload (corrigir fluxo OAuth e reload)
+  // Handle navigation based on auth and config state
   useEffect(() => {
-    if (isAuthenticated && !configLoading && config === null) {
-      loadConfig?.();
-    }
-  }, [isAuthenticated, configLoading, config, loadConfig]);
-
-  // Corrigir redirecionamento pós-login / OAuth: 
-  useEffect(() => {
-    if (!isLoading && !configLoading) {
-      // Se não autenticado, não faz nada aqui (AuthForm será mostrado)
-      if (!isAuthenticated) return;
-      // Se autenticado e não tem config, vai para /setup (primeiro acesso)
-      if (!hasConfig) {
-        if (window.location.pathname !== '/setup') {
-          navigate('/setup', { replace: true });
-        }
-      } else {
-        // Se autenticado e já tem config, vai para dashboard
-        if (window.location.pathname === '/setup' || window.location.pathname === '/') {
-          navigate('/', { replace: true });
-        }
+    if (!authLoading && !configLoading) {
+      console.log('Navigation check:', { isAuthenticated, hasConfig, userProfile });
+      
+      if (!isAuthenticated) {
+        // Not authenticated - stay on login page
+        return;
+      }
+      
+      if (isAuthenticated && !hasConfig) {
+        // Authenticated but no config - redirect to setup
+        console.log('Redirecting to setup - no config found');
+        navigate('/setup', { replace: true });
+        return;
+      }
+      
+      if (isAuthenticated && hasConfig && window.location.pathname === '/setup') {
+        // Authenticated with config but on setup page - redirect to dashboard
+        console.log('Redirecting to dashboard - setup already complete');
+        navigate('/', { replace: true });
+        return;
       }
     }
-  }, [isLoading, configLoading, isAuthenticated, hasConfig, navigate]);
+  }, [authLoading, configLoading, isAuthenticated, hasConfig, userProfile, navigate]);
 
-  // Voltar para dashboard principal
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
   };
 
-  // Exibição de loading global enquanto carrega dados essenciais
-  if (isLoading || configLoading) {
+  // Show loading while checking auth/config
+  if (authLoading || configLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -76,15 +75,14 @@ const Index = () => {
     );
   }
 
-  // Tela de autenticação se não logado
+  // Show auth form if not authenticated
   if (!isAuthenticated) {
     return <AuthForm onAuthSuccess={() => loadConfig?.()} />;
   }
 
-  // Só renderiza conteúdo se houver configuração pronta!
+  // Don't render main app if user needs to complete setup
   if (!hasConfig || !config) {
-    // Isso cobre o caso "entre login e setup" sem piscar outras telas
-    return null;
+    return null; // Will be redirected to setup by useEffect
   }
 
   const renderContent = () => {

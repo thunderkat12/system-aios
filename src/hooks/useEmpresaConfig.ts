@@ -22,25 +22,18 @@ export function useEmpresaConfig() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      loadConfig();
-    }
-  }, [user]);
-
   const loadConfig = async () => {
-    if (!user) return;
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
+      console.log('Loading config for user:', user.id);
       const { data, error } = await (supabase.rpc as any)("get_empresa_config", { p_user_id: user.id });
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error loading empresa config:', error);
-        toast({
-          title: "Erro de segurança",
-          description: "Acesso negado à configuração da empresa.",
-          variant: "destructive"
-        });
         setHasConfig(false);
         setConfig(null);
         return;
@@ -48,10 +41,12 @@ export function useEmpresaConfig() {
 
       if (Array.isArray(data) && data.length > 0) {
         const configData = data[0] as EmpresaConfig;
+        console.log('Config loaded:', configData);
         setConfig(configData);
         setHasConfig(true);
         applyTheme(configData.tema_primario, configData.tema_secundario);
       } else {
+        console.log('No config found for user');
         setHasConfig(false);
         setConfig(null);
       }
@@ -59,15 +54,20 @@ export function useEmpresaConfig() {
       console.error('Error loading empresa config:', error);
       setHasConfig(false);
       setConfig(null);
-      toast({
-        title: "Falha de autenticação",
-        description: "Não foi possível carregar a configuração da empresa: tente novamente.",
-        variant: "destructive"
-      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      loadConfig();
+    } else {
+      setIsLoading(false);
+      setConfig(null);
+      setHasConfig(false);
+    }
+  }, [user]);
 
   const createConfig = async (
     configData: Omit<EmpresaConfig, 'id' | 'user_id' | 'created_at' | 'updated_at'>
@@ -75,7 +75,7 @@ export function useEmpresaConfig() {
     if (!user) return { success: false, error: 'Usuário não autenticado' };
 
     try {
-      // Always pass the user_id from the session
+      console.log('Creating config for user:', user.id, configData);
       const { data, error } = await (supabase.rpc as any)("create_empresa_config", {
         p_user_id: user.id,
         p_nome_empresa: configData.nome_empresa,
@@ -88,9 +88,7 @@ export function useEmpresaConfig() {
         console.error('Error creating config:', error);
         toast({
           title: "Erro ao criar configuração",
-          description: error.message === "new row violates row-level security policy for table \"empresa_config\""
-            ? "Você não tem permissão para criar esta configuração."
-            : error.message,
+          description: error.message,
           variant: "destructive"
         });
         return { success: false, error: error.message };
@@ -98,6 +96,7 @@ export function useEmpresaConfig() {
 
       if (Array.isArray(data) && data.length > 0) {
         const newConfig = data[0] as EmpresaConfig;
+        console.log('Config created:', newConfig);
         setConfig(newConfig);
         setHasConfig(true);
         applyTheme(newConfig.tema_primario, newConfig.tema_secundario);
@@ -114,8 +113,8 @@ export function useEmpresaConfig() {
     } catch (error: any) {
       console.error('Error creating config:', error);
       toast({
-        title: "Falha de autenticação",
-        description: "Não foi possível criar a configuração: tente novamente.",
+        title: "Erro ao criar configuração",
+        description: "Não foi possível criar a configuração.",
         variant: "destructive"
       });
       return { success: false, error: error.message };
@@ -140,9 +139,7 @@ export function useEmpresaConfig() {
         console.error('Error updating config:', error);
         toast({
           title: "Erro ao atualizar configuração",
-          description: error.message === "row update violates row-level security policy for table \"empresa_config\""
-            ? "Você não tem permissão para atualizar esta configuração."
-            : error.message,
+          description: error.message,
           variant: "destructive"
         });
         return { success: false, error: error.message };
@@ -169,8 +166,8 @@ export function useEmpresaConfig() {
     } catch (error: any) {
       console.error('Error updating config:', error);
       toast({
-        title: "Falha de autenticação",
-        description: "Não foi possível atualizar a configuração: tente novamente.",
+        title: "Erro ao atualizar configuração",
+        description: "Não foi possível atualizar a configuração.",
         variant: "destructive"
       });
       return { success: false, error: error.message };
