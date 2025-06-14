@@ -1,6 +1,6 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardStats {
   activeClients: number;
@@ -36,7 +36,6 @@ export function useSupabaseDashboard() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -99,12 +98,12 @@ export function useSupabaseDashboard() {
         }) || []
       );
 
-      // Buscar atividades recentes
+      // Buscar até 3 atividades recentes
       const { data: atividades } = await supabase
         .from('atividades')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(3);
 
       const recentActivities = atividades?.map(atividade => ({
         id: atividade.id,
@@ -149,45 +148,11 @@ export function useSupabaseDashboard() {
     }
   };
 
-  const sendWebhookData = async () => {
-    const webhookUrl = "https://n8n.grapeassist.com/webhook/dash_diario";
-    
-    const dashboardData = {
-      timestamp: new Date().toISOString(),
-      data_hora_envio: new Date().toLocaleString('pt-BR'),
-      clientes_ativos: stats.activeClients,
-      os_abertas: stats.openOS,
-      os_finalizadas: stats.completedOS,
-      faturamento_total: `R$ ${stats.revenue.toLocaleString('pt-BR')}`,
-      estoque_baixo: stats.lowStockItems,
-      tempo_medio_reparo: stats.averageTime,
-      tecnicos_responsaveis: stats.technicians,
-      ultimas_atividades: stats.recentActivities,
-      empresa: "Hi-Tech Soluções"
-    };
-
-    try {
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(dashboardData),
-      });
-
-      return response.ok;
-    } catch (error) {
-      console.error("Erro ao enviar webhook:", error);
-      return false;
-    }
-  };
-
   // Atualizar cada 30 segundos
   useEffect(() => {
     fetchDashboardData();
 
     const interval = setInterval(() => {
-      setLastRefresh(Date.now());
       fetchDashboardData();
     }, 30000);
 
@@ -196,15 +161,13 @@ export function useSupabaseDashboard() {
 
   // Permite refresh imediato ao disparar alguma ação
   const refreshData = () => {
-    setLastRefresh(Date.now());
     fetchDashboardData();
   };
 
   return {
     stats,
     isLoading,
-    refreshData,
-    sendWebhookData
+    refreshData
   };
 }
 
