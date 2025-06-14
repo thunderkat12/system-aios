@@ -43,7 +43,7 @@ export type Database = {
           nome: string
           telefone: string | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           ativo?: boolean | null
@@ -54,7 +54,7 @@ export type Database = {
           nome: string
           telefone?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           ativo?: boolean | null
@@ -65,7 +65,7 @@ export type Database = {
           nome?: string
           telefone?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -287,7 +287,7 @@ export type Database = {
           tecnico_responsavel: string
           tipo_reparo: string
           updated_at: string | null
-          user_id: string | null
+          user_id: string
           valor: number | null
         }
         Insert: {
@@ -303,7 +303,7 @@ export type Database = {
           tecnico_responsavel: string
           tipo_reparo: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
           valor?: number | null
         }
         Update: {
@@ -319,7 +319,7 @@ export type Database = {
           tecnico_responsavel?: string
           tipo_reparo?: string
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
           valor?: number | null
         }
         Relationships: [
@@ -479,14 +479,6 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
-      }
-      get_current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
       }
       halfvec_avg: {
         Args: { "": number[] }

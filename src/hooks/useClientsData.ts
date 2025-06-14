@@ -12,7 +12,7 @@ export interface Client {
   email: string | null;
   endereco: string | null;
   ativo: boolean | null;
-  user_id: string | null;
+  user_id: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -27,10 +27,16 @@ export function useClientsData() {
     
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .order('nome');
+      
+      // Implement user-based access control
+      let query = supabase.from('clientes').select('*');
+      
+      // Admins can see all clients, others only their own
+      if (user.cargo !== 'admin') {
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data, error } = await query.order('nome');
 
       if (error) {
         console.error('Erro ao buscar clientes:', error);
@@ -61,7 +67,7 @@ export function useClientsData() {
         email: validatedData.email ? sanitizeString(validatedData.email) : null,
         endereco: validatedData.endereco ? sanitizeString(validatedData.endereco) : null,
         ativo: true,
-        user_id: user.id
+        user_id: user.id // Always associate with current user
       };
 
       const { data, error } = await supabase
@@ -90,6 +96,21 @@ export function useClientsData() {
       // Validate input if provided
       if (Object.keys(clientData).length > 0) {
         clientSchema.partial().parse(clientData);
+      }
+
+      // Check if user owns this client or is admin
+      const { data: existingClient } = await supabase
+        .from('clientes')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (!existingClient) {
+        return { data: null, error: 'Cliente não encontrado' };
+      }
+
+      if (user.cargo !== 'admin' && existingClient.user_id !== user.id) {
+        return { data: null, error: 'Acesso negado: você não pode editar este cliente' };
       }
 
       // Sanitize inputs
@@ -130,6 +151,21 @@ export function useClientsData() {
     if (!user) return { error: 'Usuário não autenticado' };
 
     try {
+      // Check if user owns this client or is admin
+      const { data: existingClient } = await supabase
+        .from('clientes')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (!existingClient) {
+        return { error: 'Cliente não encontrado' };
+      }
+
+      if (user.cargo !== 'admin' && existingClient.user_id !== user.id) {
+        return { error: 'Acesso negado: você não pode excluir este cliente' };
+      }
+
       const { error } = await supabase
         .from('clientes')
         .delete()

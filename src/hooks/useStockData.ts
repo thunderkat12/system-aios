@@ -29,6 +29,8 @@ export function useStockData() {
     
     try {
       setIsLoading(true);
+      
+      // All users can view stock, but only admins can modify
       const { data, error } = await supabase
         .from('estoque')
         .select('*')

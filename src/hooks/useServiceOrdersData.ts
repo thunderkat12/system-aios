@@ -16,7 +16,7 @@ export interface ServiceOrder {
   status: string | null;
   valor: number | null;
   observacoes: string | null;
-  user_id: string | null;
+  user_id: string;
   created_at?: string;
   updated_at?: string;
   finalizada_em?: string | null;
@@ -32,10 +32,16 @@ export function useServiceOrdersData() {
     
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('ordens_servico')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      // Implement user-based access control
+      let query = supabase.from('ordens_servico').select('*');
+      
+      // Admins can see all orders, others only their own
+      if (user.cargo !== 'admin') {
+        query = query.eq('user_id', user.id);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error('Erro ao buscar ordens de serviço:', error);
@@ -69,7 +75,7 @@ export function useServiceOrdersData() {
         status: validatedData.status ? sanitizeString(validatedData.status) : 'Em Andamento',
         valor: validatedData.valor || null,
         observacoes: validatedData.observacoes ? sanitizeString(validatedData.observacoes) : null,
-        user_id: user.id
+        user_id: user.id // Always associate with current user
       };
 
       const { data, error } = await supabase
@@ -98,6 +104,21 @@ export function useServiceOrdersData() {
       // Validate input if provided
       if (Object.keys(orderData).length > 0) {
         serviceOrderSchema.partial().parse(orderData);
+      }
+
+      // Check if user owns this service order or is admin
+      const { data: existingOrder } = await supabase
+        .from('ordens_servico')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (!existingOrder) {
+        return { data: null, error: 'Ordem de serviço não encontrada' };
+      }
+
+      if (user.cargo !== 'admin' && existingOrder.user_id !== user.id) {
+        return { data: null, error: 'Acesso negado: você não pode editar esta OS' };
       }
 
       const updateData: any = { 
@@ -146,6 +167,21 @@ export function useServiceOrdersData() {
     if (!user) return { error: 'Usuário não autenticado' };
 
     try {
+      // Check if user owns this service order or is admin
+      const { data: existingOrder } = await supabase
+        .from('ordens_servico')
+        .select('user_id')
+        .eq('id', id)
+        .single();
+
+      if (!existingOrder) {
+        return { error: 'Ordem de serviço não encontrada' };
+      }
+
+      if (user.cargo !== 'admin' && existingOrder.user_id !== user.id) {
+        return { error: 'Acesso negado: você não pode excluir esta OS' };
+      }
+
       const { error } = await supabase
         .from('ordens_servico')
         .delete()
