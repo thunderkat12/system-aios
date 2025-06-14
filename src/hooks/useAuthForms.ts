@@ -2,10 +2,17 @@
 import { useAuth } from '@/hooks/useAuth';
 
 export function useAuthForms(onAuthSuccess: () => void) {
-  const { signIn, signUp, isLoading } = useAuth();
+  const { signIn, signUp, signInWithGoogle, isLoading } = useAuth();
 
   const handleLogin = async (email: string, senha: string) => {
     const result = await signIn(email, senha);
+    if (result.success) {
+      onAuthSuccess();
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const result = await signInWithGoogle();
     if (result.success) {
       onAuthSuccess();
     }
@@ -25,6 +32,7 @@ export function useAuthForms(onAuthSuccess: () => void) {
 
   return {
     handleLogin,
+    handleGoogleLogin,
     handleRegister,
     isLoading
   };

@@ -11,7 +11,7 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ onAuthSuccess }: AuthFormProps) {
-  const { handleLogin, handleRegister, isLoading } = useAuthForms(onAuthSuccess);
+  const { handleLogin, handleGoogleLogin, handleRegister, isLoading } = useAuthForms(onAuthSuccess);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -25,7 +25,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
-              <LoginForm onSubmit={handleLogin} isLoading={isLoading} />
+              <LoginForm 
+                onSubmit={handleLogin} 
+                onGoogleLogin={handleGoogleLogin}
+                isLoading={isLoading} 
+              />
             </TabsContent>
             
             <TabsContent value="register" className="space-y-4">

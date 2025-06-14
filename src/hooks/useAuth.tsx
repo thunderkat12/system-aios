@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -201,6 +202,35 @@ export function useAuth() {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Erro no login com Google",
+          description: error.message,
+          variant: "destructive"
+        });
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, error: null };
+    } catch (error: any) {
+      toast({
+        title: "Erro no login com Google",
+        description: "Falha ao conectar com Google",
+        variant: "destructive"
+      });
+      return { success: false, error: "Falha ao conectar com Google" };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -226,6 +256,7 @@ export function useAuth() {
     isLoading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     isAuthenticated: !!session
   };
