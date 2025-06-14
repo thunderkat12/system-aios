@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,9 +17,19 @@ const Setup = () => {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
+  // DEBUGGING LOGS
+  useEffect(() => {
+    console.log("[DEBUG] Auth loading?", authLoading, "Is authenticated?", isAuthenticated);
+  }, [authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    console.log("[DEBUG] Config loading?", configLoading, "Has config?", hasConfig, "Config:", config);
+  }, [configLoading, hasConfig, config]);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
+      console.log("[DEBUG] Not authenticated, redirecting to login");
       navigate('/', { replace: true });
     }
   }, [authLoading, isAuthenticated, navigate]);
@@ -28,20 +37,22 @@ const Setup = () => {
   // Redirect to dashboard if already has config
   useEffect(() => {
     if (!configLoading && hasConfig && config) {
-      console.log('Setup already complete, redirecting to dashboard');
+      console.log('[DEBUG] Setup já completo, redirecionando para dashboard:', config);
       navigate('/', { replace: true });
     }
   }, [hasConfig, config, configLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!nomeEmpresa.trim()) {
+      console.log("[DEBUG] Nome da empresa está vazio");
       return;
     }
 
     setFormLoading(true);
-    
+    console.log("[DEBUG] Salvando config...", { nomeEmpresa, temaPrimario, temaSecundario });
+
     try {
       const result = await createConfig({
         nome_empresa: nomeEmpresa.trim(),
@@ -49,12 +60,18 @@ const Setup = () => {
         tema_secundario: temaSecundario
       });
 
+      console.log("[DEBUG] Resultado do createConfig:", result);
+
       if (result.success) {
-        console.log('Setup complete, redirecting to dashboard');
+        console.log('[DEBUG] Setup complete, redirecionando para dashboard');
         navigate('/', { replace: true });
+      } else {
+        console.warn('[DEBUG] Falha ao criar configuração:', result.error);
+        alert("Erro ao salvar configuração: " + (result.error || "Erro desconhecido"));
       }
     } catch (error) {
-      console.error('Setup error:', error);
+      console.error('[DEBUG] Erro inesperado no setup:', error);
+      alert("Erro inesperado ao salvar configuração.");
     } finally {
       setFormLoading(false);
     }
