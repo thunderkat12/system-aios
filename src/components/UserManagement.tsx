@@ -59,8 +59,8 @@ export function UserManagement() {
         return;
       }
 
-      // Type casting para garantir compatibilidade
-      const usuariosTyped = (data || []).map(user => ({
+      // Type casting seguro para garantir compatibilidade
+      const usuariosTyped: Usuario[] = (data || []).map(user => ({
         ...user,
         cargo: user.cargo as 'admin' | 'tecnico' | 'atendente'
       }));
@@ -88,14 +88,19 @@ export function UserManagement() {
     try {
       if (editingUser) {
         // Atualizar usuário existente
+        const updateData: any = {
+          nome_completo: formData.nome_completo,
+          email: formData.email,
+          cargo: formData.cargo,
+        };
+
+        if (formData.senha) {
+          updateData.senha_hash = formData.senha;
+        }
+
         const { error } = await supabase
           .from('usuarios')
-          .update({
-            nome_completo: formData.nome_completo,
-            email: formData.email,
-            cargo: formData.cargo,
-            ...(formData.senha && { senha_hash: formData.senha })
-          })
+          .update(updateData)
           .eq('id', editingUser.id);
 
         if (error) {

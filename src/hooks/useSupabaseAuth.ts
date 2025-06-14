@@ -65,7 +65,7 @@ export function useSupabaseAuth() {
         throw new Error('Senha incorreta');
       }
 
-      // Salvar dados da sessão com type casting
+      // Salvar dados da sessão com type casting correto
       const userData: User = {
         id: usuario.id,
         nome_completo: usuario.nome_completo,
@@ -77,7 +77,7 @@ export function useSupabaseAuth() {
       localStorage.setItem('hitech_auth_data', JSON.stringify(userData));
       setUser(userData);
 
-      // Log da atividade
+      // Log da atividade usando a função segura
       await logActivity('login', `Login realizado por ${usuario.nome_completo}`, usuario.id);
 
       toast({
@@ -164,13 +164,24 @@ export function useSupabaseAuth() {
 
   const logActivity = async (acao: string, descricao: string, usuarioId?: string) => {
     try {
-      await supabase
-        .from('logs_atividades')
-        .insert({
-          usuario_id: usuarioId || user?.id,
-          acao,
-          descricao
-        });
+      // Usar a função segura do banco de dados
+      const { error } = await supabase.rpc('inserir_log_atividade', {
+        p_usuario_id: usuarioId || user?.id,
+        p_acao: acao,
+        p_descricao: descricao
+      });
+
+      if (error) {
+        console.error('Erro ao registrar log via RPC:', error);
+        // Fallback para inserção direta
+        await supabase
+          .from('logs_atividades')
+          .insert({
+            usuario_id: usuarioId || user?.id,
+            acao,
+            descricao
+          });
+      }
     } catch (error) {
       console.error('Erro ao registrar log:', error);
     }

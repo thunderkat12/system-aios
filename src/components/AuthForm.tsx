@@ -19,7 +19,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     nome_completo: '',
     email: '',
     senha: '',
-    cargo: '' as 'admin' | 'tecnico' | 'atendente'
+    cargo: '' as 'admin' | 'tecnico' | 'atendente' | ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
@@ -39,9 +39,12 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     if (!registerData.cargo) {
       return;
     }
-    const result = await register(registerData);
+    const result = await register({
+      ...registerData,
+      cargo: registerData.cargo as 'admin' | 'tecnico' | 'atendente'
+    });
     if (result.success) {
-      setRegisterData({ nome_completo: '', email: '', senha: '', cargo: '' as any });
+      setRegisterData({ nome_completo: '', email: '', senha: '', cargo: '' });
     }
   };
 
@@ -176,8 +179,12 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="register-cargo">Cargo</Label>
-                  <Select value={registerData.cargo} onValueChange={(value: 'admin' | 'tecnico' | 'atendente') => 
-                    setRegisterData(prev => ({ ...prev, cargo: value }))}>
+                  <Select 
+                    value={registerData.cargo} 
+                    onValueChange={(value: 'admin' | 'tecnico' | 'atendente') => 
+                      setRegisterData(prev => ({ ...prev, cargo: value }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o cargo" />
                     </SelectTrigger>
