@@ -27,23 +27,44 @@ export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
-  const { config, isLoading: configLoading, hasConfig } = useEmpresaConfig();
+  const { config, isLoading: configLoading, hasConfig, loadConfig } = useEmpresaConfig();
   const navigate = useNavigate();
 
   // Bootstrap admin user
   useAdminBootstrap();
 
+  // Garantir que a empresa seja carregada após login ou reload (corrigir fluxo OAuth e reload)
   useEffect(() => {
-    // Se usuário está autenticado mas não tem configuração, redirecionar para setup
-    if (isAuthenticated && !configLoading && !hasConfig) {
-      navigate('/setup');
+    if (isAuthenticated && !configLoading && config === null) {
+      loadConfig?.();
     }
-  }, [isAuthenticated, configLoading, hasConfig, navigate]);
+  }, [isAuthenticated, configLoading, config, loadConfig]);
 
+  // Corrigir redirecionamento pós-login / OAuth: 
+  useEffect(() => {
+    if (!isLoading && !configLoading) {
+      // Se não autenticado, não faz nada aqui (AuthForm será mostrado)
+      if (!isAuthenticated) return;
+      // Se autenticado e não tem config, vai para /setup (primeiro acesso)
+      if (!hasConfig) {
+        if (window.location.pathname !== '/setup') {
+          navigate('/setup', { replace: true });
+        }
+      } else {
+        // Se autenticado e já tem config, vai para dashboard
+        if (window.location.pathname === '/setup' || window.location.pathname === '/') {
+          navigate('/', { replace: true });
+        }
+      }
+    }
+  }, [isLoading, configLoading, isAuthenticated, hasConfig, navigate]);
+
+  // Voltar para dashboard principal
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
   };
 
+  // Exibição de loading global enquanto carrega dados essenciais
   if (isLoading || configLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -55,12 +76,14 @@ const Index = () => {
     );
   }
 
+  // Tela de autenticação se não logado
   if (!isAuthenticated) {
-    return <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />;
+    return <AuthForm onAuthSuccess={() => loadConfig?.()} />;
   }
 
-  // Se não tem configuração, não renderizar nada (será redirecionado para /setup)
-  if (!hasConfig) {
+  // Só renderiza conteúdo se houver configuração pronta!
+  if (!hasConfig || !config) {
+    // Isso cobre o caso "entre login e setup" sem piscar outras telas
     return null;
   }
 
