@@ -32,15 +32,15 @@ export function useEmpresaConfig() {
     if (!user) return;
 
     try {
-      // Usar rpc para acessar a nova tabela
-      const { data, error } = await supabase.rpc('get_empresa_config', { p_user_id: user.id });
+      // Tipagem ajustada usando as any
+      const { data, error } = await (supabase.rpc as any)("get_empresa_config", { p_user_id: user.id });
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading empresa config:', error);
         return;
       }
 
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         const configData = data[0] as EmpresaConfig;
         setConfig(configData);
         setHasConfig(true);
@@ -60,7 +60,7 @@ export function useEmpresaConfig() {
     if (!user) return { success: false, error: 'Usuário não autenticado' };
 
     try {
-      const { data, error } = await supabase.rpc('create_empresa_config', {
+      const { data, error } = await (supabase.rpc as any)("create_empresa_config", {
         p_user_id: user.id,
         p_nome_empresa: configData.nome_empresa,
         p_tema_primario: configData.tema_primario,
@@ -73,7 +73,7 @@ export function useEmpresaConfig() {
         return { success: false, error: error.message };
       }
 
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         const newConfig = data[0] as EmpresaConfig;
         setConfig(newConfig);
         setHasConfig(true);
@@ -98,7 +98,7 @@ export function useEmpresaConfig() {
     if (!user || !config) return { success: false, error: 'Configuração não encontrada' };
 
     try {
-      const { data, error } = await supabase.rpc('update_empresa_config', {
+      const { data, error } = await (supabase.rpc as any)("update_empresa_config", {
         p_user_id: user.id,
         p_nome_empresa: updates.nome_empresa || config.nome_empresa,
         p_tema_primario: updates.tema_primario || config.tema_primario,
@@ -111,7 +111,7 @@ export function useEmpresaConfig() {
         return { success: false, error: error.message };
       }
 
-      if (data && Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         const updatedConfig = data[0] as EmpresaConfig;
         setConfig(updatedConfig);
         
