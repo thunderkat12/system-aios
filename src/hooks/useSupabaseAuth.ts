@@ -24,26 +24,32 @@ export function useSupabaseAuth() {
 
   const checkAuthStatus = async () => {
     try {
+      // Check if there's a valid session in localStorage
       const authData = localStorage.getItem('hitech_auth_data');
       if (authData) {
         const userData = JSON.parse(authData);
-        // Verify the session is still valid by checking if user exists
-        const { data: userExists } = await supabase
+        
+        // Verify the session is still valid by checking if user exists and is active
+        const { data: userExists, error } = await supabase
           .from('usuarios')
           .select('id, nome_completo, email, cargo, ativo')
           .eq('id', userData.id)
           .eq('ativo', true)
           .single();
 
-        if (userExists) {
-          setUser(userExists as User);
-        } else {
+        if (error || !userExists) {
+          // Session is invalid, clear it
           localStorage.removeItem('hitech_auth_data');
+          setUser(null);
+        } else {
+          // Session is valid, set user
+          setUser(userExists as User);
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar autenticação:', error);
+      // Clear invalid session data
       localStorage.removeItem('hitech_auth_data');
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -57,9 +63,7 @@ export function useSupabaseAuth() {
       const validatedData = userLoginSchema.parse({ email, senha });
       const sanitizedEmail = sanitizeEmail(validatedData.email);
 
-      console.log('Tentativa de login para:', sanitizedEmail);
-
-      // Buscar usuário no banco
+      // Query user from database
       const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select('*')
@@ -68,24 +72,23 @@ export function useSupabaseAuth() {
         .limit(1);
 
       if (error) {
-        console.error('Erro na consulta:', error);
         throw new Error('Erro interno do sistema');
       }
 
       if (!usuarios || usuarios.length === 0) {
-        throw new Error('Usuário não encontrado ou inativo');
+        throw new Error('Email ou senha incorretos');
       }
 
       const usuario = usuarios[0];
 
-      // Verificar senha com hash
+      // Verify password
       const senhaValida = await verifyPassword(validatedData.senha, usuario.senha_hash);
 
       if (!senhaValida) {
-        throw new Error('Senha incorreta');
+        throw new Error('Email ou senha incorretos');
       }
 
-      // Salvar dados da sessão com type casting correto
+      // Create user session
       const userData: User = {
         id: usuario.id,
         nome_completo: sanitizeString(usuario.nome_completo),
@@ -94,10 +97,16 @@ export function useSupabaseAuth() {
         ativo: usuario.ativo
       };
 
-      localStorage.setItem('hitech_auth_data', JSON.stringify(userData));
+      // Store session with expiration (24 hours)
+      const sessionData = {
+        ...userData,
+        expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      };
+      
+      localStorage.setItem('hitech_auth_data', JSON.stringify(sessionData));
       setUser(userData);
 
-      // Log da atividade
+      // Log activity
       await logActivity('login', `Login realizado por ${userData.nome_completo}`, usuario.id);
 
       toast({
@@ -107,11 +116,11 @@ export function useSupabaseAuth() {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Erro no login:', error);
+      let errorMessage = 'Email ou senha incorretos';
       
-      let errorMessage = 'Erro interno do sistema';
-      if (error.message.includes('não encontrado') || error.message.includes('Senha incorreta')) {
-        errorMessage = 'Email ou senha incorretos';
+      if (error.errors) {
+        // Zod validation error
+        errorMessage = 'Dados inválidos fornecidos';
       }
       
       toast({
@@ -134,6 +143,11 @@ export function useSupabaseAuth() {
     try {
       setIsLoading(true);
 
+      // Only admins can register new users
+      if (!user || user.cargo !== 'admin') {
+        throw new Error('Apenas administradores podem cadastrar usuários');
+      }
+
       // Validate input
       const validatedData = userRegisterSchema.parse(dados);
 
@@ -155,12 +169,13 @@ export function useSupabaseAuth() {
         });
 
       if (error) {
-        console.error('Erro no cadastro:', error);
         if (error.code === '23505') {
           throw new Error('Este email já está cadastrado');
         }
         throw new Error('Erro ao cadastrar usuário');
       }
+
+      await logActivity('create_user', `Novo usuário ${sanitizedNome} foi criado`);
 
       toast({
         title: "Usuário cadastrado com sucesso!",
@@ -169,8 +184,6 @@ export function useSupabaseAuth() {
 
       return { success: true };
     } catch (error: any) {
-      console.error('Erro no cadastro:', error);
-      
       let errorMessage = error.message || 'Erro interno do sistema';
       
       toast({
@@ -197,7 +210,7 @@ export function useSupabaseAuth() {
         description: "Você foi desconectado do sistema",
       });
     } catch (error) {
-      console.error('Erro no logout:', error);
+      // Silent fail on logout
     }
   };
 
@@ -211,9 +224,39 @@ export function useSupabaseAuth() {
           descricao: sanitizeString(descricao)
         });
     } catch (error) {
-      console.error('Erro ao registrar log:', error);
+      // Silent fail on logging
     }
   };
+
+  // Check for session expiration periodically
+  useEffect(() => {
+    const checkSessionExpiration = () => {
+      const authData = localStorage.getItem('hitech_auth_data');
+      if (authData) {
+        try {
+          const sessionData = JSON.parse(authData);
+          if (sessionData.expiresAt && Date.now() > sessionData.expiresAt) {
+            // Session expired
+            localStorage.removeItem('hitech_auth_data');
+            setUser(null);
+            toast({
+              title: "Sessão expirada",
+              description: "Sua sessão expirou. Faça login novamente.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          // Invalid session data, clear it
+          localStorage.removeItem('hitech_auth_data');
+          setUser(null);
+        }
+      }
+    };
+
+    // Check every 5 minutes
+    const interval = setInterval(checkSessionExpiration, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user, toast]);
 
   return {
     user,

@@ -16,10 +16,12 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; senha?: string }>({});
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     
     try {
       // Validate input before submitting
@@ -27,11 +29,20 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
       await onSubmit(email, senha);
     } catch (error: any) {
       if (error.errors) {
-        // Zod validation error
-        const firstError = error.errors[0];
+        // Zod validation errors
+        const fieldErrors: { email?: string; senha?: string } = {};
+        error.errors.forEach((err: any) => {
+          if (err.path[0] === 'email') {
+            fieldErrors.email = err.message;
+          } else if (err.path[0] === 'senha') {
+            fieldErrors.senha = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
         toast({
-          title: "Erro de validação",
-          description: firstError.message,
+          title: "Erro no login",
+          description: "Verifique suas credenciais e tente novamente",
           variant: "destructive",
         });
       }
@@ -50,7 +61,11 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isLoading}
+          className={errors.email ? "border-red-500" : ""}
         />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="login-password">Senha</Label>
@@ -64,6 +79,7 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
             required
             disabled={isLoading}
             minLength={6}
+            className={errors.senha ? "border-red-500" : ""}
           />
           <Button
             type="button"
@@ -80,17 +96,13 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
             )}
           </Button>
         </div>
+        {errors.senha && (
+          <p className="text-sm text-red-500">{errors.senha}</p>
+        )}
       </div>
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full" disabled={isLoading || !email || !senha}>
         {isLoading ? "Entrando..." : "Entrar"}
       </Button>
-      
-      <div className="mt-4 p-3 bg-muted rounded-lg">
-        <p className="text-sm text-muted-foreground text-center">
-          <strong>Acesso teste:</strong><br />
-          admin@hitech.com / admin123
-        </p>
-      </div>
     </form>
   );
 }
