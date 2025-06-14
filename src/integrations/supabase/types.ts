@@ -43,7 +43,6 @@ export type Database = {
           nome: string
           telefone: string | null
           updated_at: string | null
-          user_id: string | null
         }
         Insert: {
           ativo?: boolean | null
@@ -54,7 +53,6 @@ export type Database = {
           nome: string
           telefone?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Update: {
           ativo?: boolean | null
@@ -65,17 +63,8 @@ export type Database = {
           nome?: string
           telefone?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "clientes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       CRM: {
         Row: {
@@ -125,46 +114,50 @@ export type Database = {
         }
         Relationships: []
       }
-      empresa_config: {
+      documents: {
         Row: {
+          client_name: string
           created_at: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
           id: string
-          nome_empresa: string
-          tema_primario: string
-          tema_secundario: string
+          status: string
           updated_at: string
+          uploaded_by: string
           user_id: string
-          webhook_url: string | null
         }
         Insert: {
+          client_name: string
           created_at?: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
           id?: string
-          nome_empresa: string
-          tema_primario: string
-          tema_secundario: string
+          status?: string
           updated_at?: string
+          uploaded_by: string
           user_id: string
-          webhook_url?: string | null
         }
         Update: {
+          client_name?: string
           created_at?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
           id?: string
-          nome_empresa?: string
-          tema_primario?: string
-          tema_secundario?: string
+          status?: string
           updated_at?: string
+          uploaded_by?: string
           user_id?: string
-          webhook_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "empresa_config_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       estoque: {
         Row: {
@@ -205,40 +198,23 @@ export type Database = {
         }
         Relationships: []
       }
-      logs_atividades: {
+      n8n_chat_histories: {
         Row: {
-          acao: string
-          created_at: string | null
-          descricao: string
-          id: string
-          ip_address: string | null
-          usuario_id: string | null
+          id: number
+          message: Json
+          session_id: string
         }
         Insert: {
-          acao: string
-          created_at?: string | null
-          descricao: string
-          id?: string
-          ip_address?: string | null
-          usuario_id?: string | null
+          id?: number
+          message: Json
+          session_id: string
         }
         Update: {
-          acao?: string
-          created_at?: string | null
-          descricao?: string
-          id?: string
-          ip_address?: string | null
-          usuario_id?: string | null
+          id?: number
+          message?: Json
+          session_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "logs_atividades_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ordens_servico: {
         Row: {
@@ -254,7 +230,6 @@ export type Database = {
           tecnico_responsavel: string
           tipo_reparo: string
           updated_at: string | null
-          user_id: string | null
           valor: number | null
         }
         Insert: {
@@ -270,7 +245,6 @@ export type Database = {
           tecnico_responsavel: string
           tipo_reparo: string
           updated_at?: string | null
-          user_id?: string | null
           valor?: number | null
         }
         Update: {
@@ -286,7 +260,6 @@ export type Database = {
           tecnico_responsavel?: string
           tipo_reparo?: string
           updated_at?: string | null
-          user_id?: string | null
           valor?: number | null
         }
         Relationships: [
@@ -297,14 +270,34 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ordens_servico_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       Tabela: {
         Row: {
@@ -351,36 +344,30 @@ export type Database = {
         }
         Relationships: []
       }
-      usuarios: {
+      vendas: {
         Row: {
-          ativo: boolean | null
-          cargo: string
-          created_at: string | null
-          email: string
-          id: string
-          nome_completo: string
-          senha_hash: string
-          updated_at: string | null
+          cliente: string | null
+          id: number
+          produto: string | null
+          qtd: number | null
+          valor_total: number | null
+          valor_unitario: number | null
         }
         Insert: {
-          ativo?: boolean | null
-          cargo: string
-          created_at?: string | null
-          email: string
-          id?: string
-          nome_completo: string
-          senha_hash: string
-          updated_at?: string | null
+          cliente?: string | null
+          id?: number
+          produto?: string | null
+          qtd?: number | null
+          valor_total?: number | null
+          valor_unitario?: number | null
         }
         Update: {
-          ativo?: boolean | null
-          cargo?: string
-          created_at?: string | null
-          email?: string
-          id?: string
-          nome_completo?: string
-          senha_hash?: string
-          updated_at?: string | null
+          cliente?: string | null
+          id?: number
+          produto?: string | null
+          qtd?: number | null
+          valor_total?: number | null
+          valor_unitario?: number | null
         }
         Relationships: []
       }
@@ -392,46 +379,6 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
-      }
-      create_empresa_config: {
-        Args: {
-          p_user_id: string
-          p_nome_empresa: string
-          p_tema_primario: string
-          p_tema_secundario: string
-          p_webhook_url?: string
-        }
-        Returns: {
-          id: string
-          user_id: string
-          nome_empresa: string
-          tema_primario: string
-          tema_secundario: string
-          webhook_url: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      get_current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_empresa_config: {
-        Args: { p_user_id: string }
-        Returns: {
-          id: string
-          user_id: string
-          nome_empresa: string
-          tema_primario: string
-          tema_secundario: string
-          webhook_url: string
-          created_at: string
-          updated_at: string
-        }[]
       }
       halfvec_avg: {
         Args: { "": number[] }
@@ -485,6 +432,15 @@ export type Database = {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
       }
+      match_documents: {
+        Args: { query_embedding: string; match_count?: number; filter?: Json }
+        Returns: {
+          id: number
+          content: string
+          metadata: Json
+          similarity: number
+        }[]
+      }
       sparsevec_out: {
         Args: { "": unknown }
         Returns: unknown
@@ -496,25 +452,6 @@ export type Database = {
       sparsevec_typmod_in: {
         Args: { "": unknown[] }
         Returns: number
-      }
-      update_empresa_config: {
-        Args: {
-          p_user_id: string
-          p_nome_empresa: string
-          p_tema_primario: string
-          p_tema_secundario: string
-          p_webhook_url?: string
-        }
-        Returns: {
-          id: string
-          user_id: string
-          nome_empresa: string
-          tema_primario: string
-          tema_secundario: string
-          webhook_url: string
-          created_at: string
-          updated_at: string
-        }[]
       }
       vector_avg: {
         Args: { "": number[] }

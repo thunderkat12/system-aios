@@ -6,13 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Phone, Laptop, FileText, MessageSquare, ArrowLeft } from "lucide-react";
+import { Users, Phone, Laptop, FileText, MessageSquare } from "lucide-react";
 
-interface CustomerFormProps {
-  onBack?: () => void;
-}
-
-export function CustomerForm({ onBack }: CustomerFormProps) {
+export function CustomerForm() {
   const [customerData, setCustomerData] = useState({
     name: "",
     phone: "",
@@ -64,22 +60,14 @@ export function CustomerForm({ onBack }: CustomerFormProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        {onBack && (
-          <Button variant="outline" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-        )}
-        <div>
-          <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-            <Users className="h-8 w-8" />
-            Cadastro de Clientes
-          </h1>
-          <p className="text-muted-foreground">
-            Registre novos clientes e aparelhos para assistência técnica
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
+          <Users className="h-8 w-8" />
+          Cadastro de Clientes
+        </h1>
+        <p className="text-muted-foreground">
+          Registre novos clientes e aparelhos para assistência técnica
+        </p>
       </div>
 
       <Card className="max-w-2xl">

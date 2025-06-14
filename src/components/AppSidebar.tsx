@@ -1,17 +1,5 @@
 
-import {
-  Home,
-  Users,
-  FileText,
-  History,
-  Package,
-  DollarSign,
-  Search,
-  CheckCircle,
-  Settings,
-  UserCog,
-} from "lucide-react"
-
+import { Users, FileText, History, Package, Calculator, Home, Wrench, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,11 +9,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { useAuth } from "@/hooks/useAuth"
-import { useEmpresaConfig } from "@/hooks/useEmpresaConfig"
-
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings' | 'configuracoes';
+  SidebarHeader,
+} from "@/components/ui/sidebar";
+import type { ViewType } from "@/pages/Index";
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -35,107 +21,65 @@ interface AppSidebarProps {
 const menuItems = [
   {
     title: "Dashboard",
-    url: "dashboard",
     icon: Home,
+    view: "dashboard" as ViewType,
   },
   {
-    title: "Clientes",
-    url: "customers",
+    title: "Cadastro de Clientes",
     icon: Users,
+    view: "customers" as ViewType,
   },
   {
-    title: "Ordens de Serviço",
-    url: "service-orders",
+    title: "Ordem de Serviço",
     icon: FileText,
+    view: "service-orders" as ViewType,
   },
   {
     title: "Histórico",
-    url: "history",
     icon: History,
+    view: "history" as ViewType,
   },
   {
-    title: "Estoque",
-    url: "stock",
+    title: "Controle de Estoque",
     icon: Package,
+    view: "stock" as ViewType,
   },
   {
-    title: "Financeiro",
-    url: "budget",
-    icon: DollarSign,
+    title: "Central de Orçamento",
+    icon: Calculator,
+    view: "budget" as ViewType,
   },
   {
-    title: "Buscar",
-    url: "search",
-    icon: Search,
-  },
-  {
-    title: "Finalizar OS",
-    url: "finalization",
-    icon: CheckCircle,
-  },
-]
-
-const adminItems = [
-  {
-    title: "Gestão de Usuários",
-    url: "users",
-    icon: UserCog,
-  },
-  {
-    title: "Webhooks",
-    url: "webhooks",
+    title: "Integrações",
     icon: Settings,
+    view: "webhooks" as ViewType,
   },
-  {
-    title: "Configuração",
-    url: "branding-settings",
-    icon: Settings,
-  },
-  {
-    title: "Configurações",
-    url: "configuracoes",
-    icon: Settings,
-  },
-]
+];
 
 export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
-  const { userProfile } = useAuth()
-  const { config } = useEmpresaConfig();
-
   return (
     <Sidebar>
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-2">
+          <Wrench className="h-6 w-6 text-primary" />
+          <div>
+            <h2 className="font-bold text-sm">Hi-Tech Soluções</h2>
+            <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
+          </div>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            {config?.nome_empresa || 'Hi-Tech Soluções'}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.view}>
                   <SidebarMenuButton 
-                    onClick={() => onViewChange(item.url as ViewType)}
-                    isActive={currentView === item.url}
+                    onClick={() => onViewChange(item.view)}
+                    isActive={currentView === item.view}
                   >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Administração</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    onClick={() => onViewChange(item.url as ViewType)}
-                    isActive={currentView === item.url}
-                  >
-                    <item.icon />
+                    <item.icon className="h-4 w-4" />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -145,5 +89,5 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }
