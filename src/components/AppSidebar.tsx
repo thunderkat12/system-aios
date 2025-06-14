@@ -1,3 +1,4 @@
+
 import {
   Home,
   Users,
@@ -22,9 +23,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth"
-import { useBranding } from "@/hooks/useBranding"
+import { useEmpresaConfig } from "@/hooks/useEmpresaConfig"
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings' | 'configuracoes';
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -105,7 +106,7 @@ const adminItems = [
 
 export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
   const { userProfile } = useAuth()
-  const { branding } = useBranding();
+  const { config } = useEmpresaConfig();
 
   const hasAccess = (roles: string[]) => {
     return userProfile && roles.includes(userProfile.role)
@@ -119,7 +120,7 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            {branding.appName}
+            {config?.nome_empresa || 'Hi-Tech Soluções'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
