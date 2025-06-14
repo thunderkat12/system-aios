@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Users, FileText, Package, DollarSign, Clock, CheckCircle, RefreshCw, Send } from "lucide-react";
+import { Users, FileText, Package, DollarSign, Clock, CheckCircle, RefreshCw, Send, UserPlus, ClipboardList } from "lucide-react";
 import { useSupabaseDashboard } from "@/hooks/useSupabaseDashboard";
 import { useState } from "react";
 import type { ViewType } from "@/pages/Index";
@@ -157,20 +157,35 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.technicians.map((tech) => (
-                <div key={tech.name} className="flex items-center justify-between p-3 bg-card rounded-lg">
-                  <div>
-                    <p className="font-medium">{tech.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {tech.activeJobs} ativos • {tech.completedJobs} finalizados
-                    </p>
+              {stats.technicians.length > 0 ? (
+                stats.technicians.map((tech) => (
+                  <div key={tech.name} className="flex items-center justify-between p-3 bg-card rounded-lg">
+                    <div>
+                      <p className="font-medium">{tech.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {tech.activeJobs} ativos • {tech.completedJobs} finalizados
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-primary">{tech.activeJobs}</div>
+                      <div className="text-xs text-muted-foreground">Ativos</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-primary">{tech.activeJobs}</div>
-                    <div className="text-xs text-muted-foreground">Ativos</div>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">Nenhum técnico cadastrado ainda</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCardClick("service-orders")}
+                    className="flex items-center gap-2"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Cadastrar Primeiro Técnico
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -182,23 +197,78 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-center gap-3 p-2 border-l-2 border-primary bg-card rounded">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground">Atividade do sistema</p>
+              {stats.recentActivities.length > 0 ? (
+                stats.recentActivities.map((activity) => (
+                  <div key={activity.id} className="flex items-center gap-3 p-2 border-l-2 border-primary bg-card rounded">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground">Atividade do sistema</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{activity.time}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{activity.time}</span>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">Nenhuma atividade registrada ainda</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCardClick("customers")}
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    Cadastrar Primeiro Cliente
+                  </Button>
                 </div>
-              ))}
-              {stats.recentActivities.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhuma atividade recente</p>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Seção de ações rápidas para começar a usar o sistema */}
+      {(stats.activeClients === 0 && stats.openOS === 0) && (
+        <Card className="border-2 border-dashed border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Primeiros Passos
+            </CardTitle>
+            <CardDescription>
+              Comece a usar o sistema cadastrando seus primeiros dados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => handleCardClick("customers")}
+                className="h-20 flex flex-col items-center gap-2"
+              >
+                <Users className="h-6 w-6" />
+                <span>Cadastrar Cliente</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => handleCardClick("stock")}
+                className="h-20 flex flex-col items-center gap-2"
+              >
+                <Package className="h-6 w-6" />
+                <span>Gerenciar Estoque</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => handleCardClick("service-orders")}
+                className="h-20 flex flex-col items-center gap-2"
+              >
+                <FileText className="h-6 w-6" />
+                <span>Nova OS</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
