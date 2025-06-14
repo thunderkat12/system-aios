@@ -148,7 +148,36 @@ export function useAuth() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Diagnóstico específico para usuário não registrado no Auth do Supabase
+        let errorMessage = 'Email ou senha incorretos';
+        if (error.message?.includes('Invalid login credentials')) {
+          // Checa se existe o usuário na tabela usuarios para diagnóstico
+          const { data: u } = await supabase
+            .from("usuarios")
+            .select("email")
+            .eq("email", email.toLowerCase().trim())
+            .maybeSingle();
+          if (u && !data?.user) {
+            errorMessage =
+              "O cadastro desse usuário foi feito somente no banco, mas não foi registrado pelo Supabase Auth. Crie o usuário usando o cadastro do sistema para conseguir logar.";
+          } else {
+            errorMessage = 'Email ou senha incorretos';
+          }
+        } else if (error.message?.includes('Email not confirmed')) {
+          errorMessage = 'Confirme seu email antes de fazer login';
+        } else if (error.message?.includes('Too many requests')) {
+          errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
+        }
+
+        toast({
+          title: "Erro no login",
+          description: errorMessage,
+          variant: "destructive",
+        });
+
+        return { success: false, error: errorMessage };
+      }
 
       toast({
         title: "Login realizado com sucesso!",
@@ -157,16 +186,7 @@ export function useAuth() {
 
       return { success: true, error: null };
     } catch (error: any) {
-      let errorMessage = 'Email ou senha incorretos';
-      
-      if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = 'Email ou senha incorretos';
-      } else if (error.message?.includes('Email not confirmed')) {
-        errorMessage = 'Confirme seu email antes de fazer login';
-      } else if (error.message?.includes('Too many requests')) {
-        errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
-      }
-
+      let errorMessage = 'Erro desconhecido ao tentar logar';
       toast({
         title: "Erro no login",
         description: errorMessage,
