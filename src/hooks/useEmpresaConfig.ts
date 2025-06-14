@@ -32,7 +32,7 @@ export function useEmpresaConfig() {
     if (!user) return;
 
     try {
-      // Usar rpc ou consulta SQL direta para acessar a nova tabela
+      // Usar rpc para acessar a nova tabela
       const { data, error } = await supabase.rpc('get_empresa_config', { p_user_id: user.id });
 
       if (error && error.code !== 'PGRST116') {
@@ -40,7 +40,7 @@ export function useEmpresaConfig() {
         return;
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         const configData = data[0] as EmpresaConfig;
         setConfig(configData);
         setHasConfig(true);
@@ -73,7 +73,7 @@ export function useEmpresaConfig() {
         return { success: false, error: error.message };
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         const newConfig = data[0] as EmpresaConfig;
         setConfig(newConfig);
         setHasConfig(true);
@@ -111,7 +111,7 @@ export function useEmpresaConfig() {
         return { success: false, error: error.message };
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         const updatedConfig = data[0] as EmpresaConfig;
         setConfig(updatedConfig);
         

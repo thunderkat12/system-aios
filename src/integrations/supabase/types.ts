@@ -480,6 +480,25 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
+      create_empresa_config: {
+        Args: {
+          p_user_id: string
+          p_nome_empresa: string
+          p_tema_primario: string
+          p_tema_secundario: string
+          p_webhook_url?: string
+        }
+        Returns: {
+          id: string
+          user_id: string
+          nome_empresa: string
+          tema_primario: string
+          tema_secundario: string
+          webhook_url: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -487,6 +506,19 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_empresa_config: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          user_id: string
+          nome_empresa: string
+          tema_primario: string
+          tema_secundario: string
+          webhook_url: string
+          created_at: string
+          updated_at: string
+        }[]
       }
       halfvec_avg: {
         Args: { "": number[] }
@@ -560,6 +592,25 @@ export type Database = {
       sparsevec_typmod_in: {
         Args: { "": unknown[] }
         Returns: number
+      }
+      update_empresa_config: {
+        Args: {
+          p_user_id: string
+          p_nome_empresa: string
+          p_tema_primario: string
+          p_tema_secundario: string
+          p_webhook_url?: string
+        }
+        Returns: {
+          id: string
+          user_id: string
+          nome_empresa: string
+          tema_primario: string
+          tema_secundario: string
+          webhook_url: string
+          created_at: string
+          updated_at: string
+        }[]
       }
       vector_avg: {
         Args: { "": number[] }
