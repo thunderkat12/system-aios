@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Users, FileText, Package, DollarSign, Clock, CheckCircle, RefreshCw, Send } from "lucide-react";
+import { Users, FileText, Package, DollarSign, Clock, CheckCircle, RefreshCw } from "lucide-react";
 import { useSupabaseDashboard } from "@/hooks/useSupabaseDashboard";
 import { useState } from "react";
 import type { ViewType } from "@/pages/Index";
@@ -12,32 +11,8 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onViewChange }: DashboardProps) {
-  const { stats, isLoading, refreshData, sendWebhookData } = useSupabaseDashboard();
-  const [isSendingWebhook, setIsSendingWebhook] = useState(false);
+  const { stats, isLoading, refreshData } = useSupabaseDashboard();
   const { toast } = useToast();
-
-  const handleSendWebhook = async () => {
-    setIsSendingWebhook(true);
-    try {
-      const success = await sendWebhookData();
-      
-      toast({
-        title: success ? "Webhook enviado com sucesso!" : "Erro no envio",
-        description: success 
-          ? "Dados do dashboard enviados para n8n com sucesso" 
-          : "Falha ao enviar dados para o webhook",
-        variant: success ? "default" : "destructive",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro no envio",
-        description: "Falha ao conectar com o webhook",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingWebhook(false);
-    }
-  };
 
   const handleCardClick = (view: ViewType) => {
     if (onViewChange) {
@@ -113,13 +88,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Atualizar Dados
-          </Button>
-          <Button 
-            onClick={handleSendWebhook}
-            disabled={isSendingWebhook}
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {isSendingWebhook ? "Enviando..." : "Enviar Webhook"}
           </Button>
         </div>
       </div>
@@ -198,4 +166,3 @@ export function Dashboard({ onViewChange }: DashboardProps) {
     </div>
   );
 }
-
