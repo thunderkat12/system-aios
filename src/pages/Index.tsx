@@ -16,8 +16,9 @@ import { UserManagement } from "@/components/UserManagement";
 import { AuthForm } from "@/components/AuthForm";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaConfig } from "@/hooks/useEmpresaConfig";
+import { useAdminBootstrap } from "@/hooks/useAdminBootstrap";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { BrandingSettings } from "@/components/BrandingSettings";
 import Configuracoes from "./Configuracoes";
 
@@ -28,6 +29,9 @@ const Index = () => {
   const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
   const { config, isLoading: configLoading, hasConfig } = useEmpresaConfig();
   const navigate = useNavigate();
+
+  // Bootstrap admin user
+  useAdminBootstrap();
 
   useEffect(() => {
     // Se usuário está autenticado mas não tem configuração, redirecionar para setup
@@ -81,7 +85,7 @@ const Index = () => {
       case 'webhooks':
         return <WebhookSettings />;
       case 'users':
-        return userProfile?.role === 'admin' ? <UserManagement /> : <Dashboard onViewChange={setCurrentView} />;
+        return <UserManagement />;
       case 'branding-settings':
         return <BrandingSettings onDone={() => setCurrentView('dashboard')} />;
       case 'configuracoes':
@@ -99,15 +103,6 @@ const Index = () => {
           <div className="mb-4 flex items-center justify-between">
             <SidebarTrigger />
             <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentView('configuracoes')}
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Configurações
-              </Button>
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
