@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, CreditCard, DollarSign, ArrowLeft } from "lucide-react";
+import { CheckCircle, CreditCard, DollarSign } from "lucide-react";
 import { PAYMENT_METHODS, WEBHOOKS } from "./service-order/constants";
 
 interface PaymentData {
@@ -15,11 +15,7 @@ interface PaymentData {
   amount: string;
 }
 
-interface OSFinalizationProps {
-  onBack?: () => void;
-}
-
-export function OSFinalization({ onBack }: OSFinalizationProps) {
+export function OSFinalization() {
   const [osNumber, setOsNumber] = useState("");
   const [payments, setPayments] = useState<PaymentData[]>([{ method: "", amount: "" }]);
   const [totalValue, setTotalValue] = useState("");
@@ -132,22 +128,14 @@ export function OSFinalization({ onBack }: OSFinalizationProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        {onBack && (
-          <Button variant="outline" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-        )}
-        <div>
-          <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-            <CheckCircle className="h-8 w-8" />
-            Finalização de OS
-          </h1>
-          <p className="text-muted-foreground">
-            Finalize ordens de serviço e envie relatórios automaticamente
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
+          <CheckCircle className="h-8 w-8" />
+          Finalização de OS
+        </h1>
+        <p className="text-muted-foreground">
+          Finalize ordens de serviço e envie relatórios automaticamente
+        </p>
       </div>
 
       <Card className="max-w-2xl">

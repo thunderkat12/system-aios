@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,6 +51,15 @@ export function UserManagement() {
   }, []);
 
   const loadUsuarios = async () => {
+    if (!userProfile || userProfile.role !== 'admin') {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem gerenciar usuários",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -83,6 +91,15 @@ export function UserManagement() {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!userProfile || userProfile.role !== 'admin') {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem gerenciar usuários",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!formData.cargo) {
       toast({
         title: "Erro",
@@ -153,7 +170,16 @@ export function UserManagement() {
   };
 
   const handleDeleteUser = async (usuario: Usuario) => {
-    if (usuario.id === userProfile?.id) {
+    if (!userProfile || userProfile.role !== 'admin') {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem excluir usuários",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (usuario.id === userProfile.id) {
       toast({
         title: "Erro",
         description: "Você não pode excluir sua própria conta",
@@ -223,6 +249,17 @@ export function UserManagement() {
     }
   };
 
+  if (!userProfile || userProfile.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Acesso restrito a administradores</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -278,9 +315,9 @@ export function UserManagement() {
                   value={formData.senha}
                   onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
                   required={!editingUser}
-                  minLength={6}
+                  minLength={12}
                   maxLength={128}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 12 caracteres com maiúscula, minúscula, número e símbolo"
                 />
               </div>
               <div className="space-y-2">

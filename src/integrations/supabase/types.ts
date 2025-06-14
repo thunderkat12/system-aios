@@ -9,6 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      atividades: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          referencia_id: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          referencia_id?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          referencia_id?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
+      clientes: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       CRM: {
         Row: {
           Agendamento: string | null
@@ -57,6 +125,247 @@ export type Database = {
         }
         Relationships: []
       }
+      documents: {
+        Row: {
+          client_name: string
+          created_at: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          status: string
+          updated_at: string
+          uploaded_by: string
+          user_id: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          status?: string
+          updated_at?: string
+          uploaded_by: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      estoque: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          estoque_minimo: number | null
+          id: string
+          marca: string | null
+          nome: string
+          quantidade: number
+          updated_at: string | null
+          user_id: string | null
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          estoque_minimo?: number | null
+          id?: string
+          marca?: string | null
+          nome: string
+          quantidade?: number
+          updated_at?: string | null
+          user_id?: string | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          estoque_minimo?: number | null
+          id?: string
+          marca?: string | null
+          nome?: string
+          quantidade?: number
+          updated_at?: string | null
+          user_id?: string | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logs_atividades: {
+        Row: {
+          acao: string
+          created_at: string | null
+          descricao: string
+          id: string
+          ip_address: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          ip_address?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          ip_address?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_atividades_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      n8n_chat_histories: {
+        Row: {
+          id: number
+          message: Json
+          session_id: string
+        }
+        Insert: {
+          id?: number
+          message: Json
+          session_id: string
+        }
+        Update: {
+          id?: number
+          message?: Json
+          session_id?: string
+        }
+        Relationships: []
+      }
+      ordens_servico: {
+        Row: {
+          cliente_id: string | null
+          cliente_nome: string
+          created_at: string | null
+          dispositivo: string
+          finalizada_em: string | null
+          id: string
+          numero_os: string
+          observacoes: string | null
+          status: string | null
+          tecnico_responsavel: string
+          tipo_reparo: string
+          updated_at: string | null
+          user_id: string
+          valor: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          cliente_nome: string
+          created_at?: string | null
+          dispositivo: string
+          finalizada_em?: string | null
+          id?: string
+          numero_os: string
+          observacoes?: string | null
+          status?: string | null
+          tecnico_responsavel: string
+          tipo_reparo: string
+          updated_at?: string | null
+          user_id: string
+          valor?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          cliente_nome?: string
+          created_at?: string | null
+          dispositivo?: string
+          finalizada_em?: string | null
+          id?: string
+          numero_os?: string
+          observacoes?: string | null
+          status?: string | null
+          tecnico_responsavel?: string
+          tipo_reparo?: string
+          updated_at?: string | null
+          user_id?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_servico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       Tabela: {
         Row: {
           id: number
@@ -75,6 +384,93 @@ export type Database = {
         }
         Relationships: []
       }
+      tecnicos: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      usuarios: {
+        Row: {
+          ativo: boolean | null
+          cargo: string
+          created_at: string | null
+          email: string
+          id: string
+          nome_completo: string
+          senha_hash: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cargo: string
+          created_at?: string | null
+          email: string
+          id?: string
+          nome_completo: string
+          senha_hash: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cargo?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          nome_completo?: string
+          senha_hash?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      vendas: {
+        Row: {
+          cliente: string | null
+          id: number
+          produto: string | null
+          qtd: number | null
+          valor_total: number | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          cliente?: string | null
+          id?: number
+          produto?: string | null
+          qtd?: number | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          cliente?: string | null
+          id?: number
+          produto?: string | null
+          qtd?: number | null
+          valor_total?: number | null
+          valor_unitario?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -83,6 +479,14 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      get_current_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       halfvec_avg: {
         Args: { "": number[] }
@@ -135,6 +539,15 @@ export type Database = {
       l2_normalize: {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
+      }
+      match_documents: {
+        Args: { query_embedding: string; match_count?: number; filter?: Json }
+        Returns: {
+          id: number
+          content: string
+          metadata: Json
+          similarity: number
+        }[]
       }
       sparsevec_out: {
         Args: { "": unknown }

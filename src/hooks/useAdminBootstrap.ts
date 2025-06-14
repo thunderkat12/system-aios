@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 
 /**
  * Este hook cria o usuário admin@hitech.com no Auth e na tabela usuarios se não existir.
- * Senha padrão: admin123456
+ * Senha padrão: admin123
  * Use em qualquer tela que será montada por um admin.
  */
 export function useAdminBootstrap() {
@@ -17,81 +17,71 @@ export function useAdminBootstrap() {
       if (running) return;
       running = true;
 
-      try {
-        // 1. Primeiro, tentar fazer login para verificar se o usuário já existe
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: "admin@hitech.com",
-          password: "admin123456"
+      // 1. Tenta encontrar no Supabase Auth
+      let { data: usersAuth, error } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 100
+      });
+      if (error) {
+        toast({
+          title: "Erro ao buscar usuários no Auth Supabase",
+          description: error.message,
+          variant: "destructive"
         });
+        return;
+      }
 
-        if (signInData?.user) {
-          // Admin já existe e conseguiu fazer login
-          await supabase.auth.signOut(); // Sair para não interferir com o usuário atual
-          console.log("Admin user already exists");
-          return;
-        }
+      // Adicione tipagem adequada: (as any[]) se não houver melhor
+      const users: any[] = usersAuth?.users ?? [];
+      const adminAuth = users.find(
+        (u) => u.email === "admin@hitech.com"
+      );
 
-        // 2. Se não conseguiu fazer login, criar o usuário
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // 2. Se não existe, criar
+      if (!adminAuth) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
           email: "admin@hitech.com",
-          password: "admin123456",
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: "Administrador",
-              role: "admin"
-            }
-          }
+          password: "admin123",
+          email_confirm: true,
         });
-
         if (signUpError) {
-          if (signUpError.message.includes('already registered')) {
-            console.log("Admin user already exists in auth");
-          } else {
-            console.error("Error creating admin user:", signUpError);
-            toast({
-              title: "Erro ao criar usuário admin",
-              description: signUpError.message,
-              variant: "destructive"
-            });
-          }
+          toast({
+            title: "Erro ao criar admin no Auth",
+            description: signUpError.message,
+            variant: "destructive"
+          });
           return;
         }
+        toast({
+          title: "Usuário admin@hitech.com criado no Auth",
+          description: "Senha padrão: admin123",
+        });
+      }
 
-        // 3. Criar entrada na tabela usuarios se o usuário foi criado com sucesso
-        if (signUpData?.user) {
-          const { error: profileError } = await supabase
-            .from('usuarios')
-            .upsert({
-              id: signUpData.user.id,
-              email: "admin@hitech.com",
-              nome_completo: "Administrador",
-              cargo: "admin",
-              senha_hash: "SUPABASE_MANAGED",
-              ativo: true
-            }, {
-              onConflict: 'email'
-            });
+      // 3. Checa se existe na tabela usuarios
+      const { data: udata } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('email', 'admin@hitech.com')
+        .maybeSingle();
 
-          if (profileError) {
-            console.error("Error creating admin profile:", profileError);
-          } else {
-            toast({
-              title: "Usuário admin criado com sucesso",
-              description: "Email: admin@hitech.com | Senha: admin123456"
-            });
-          }
-
-          // Sair para não interferir com o usuário atual
-          await supabase.auth.signOut();
-        }
-      } catch (error) {
-        console.error("Error in admin bootstrap:", error);
-      } finally {
-        running = false;
+      if (!udata) {
+        await supabase.from("usuarios").insert({
+          email: "admin@hitech.com",
+          nome_completo: "Administrador",
+          cargo: "admin",
+          senha_hash: "SUPABASE_MANAGED",
+          ativo: true,
+        });
+        toast({
+          title: "Usuário admin cadastrado na tabela usuarios",
+          description: "Senha padrão: admin123"
+        });
       }
     }
-
     createAdminIfNeeded();
-  }, [toast]);
+    return () => {
+      running = false;
+    };
+  }, []);
 }

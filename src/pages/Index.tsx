@@ -1,6 +1,4 @@
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Dashboard } from "@/components/Dashboard";
@@ -15,57 +13,19 @@ import { WebhookSettings } from "@/components/WebhookSettings";
 import { UserManagement } from "@/components/UserManagement";
 import { AuthForm } from "@/components/AuthForm";
 import { useAuth } from "@/hooks/useAuth";
-import { useEmpresaConfig } from "@/hooks/useEmpresaConfig";
-import { useAdminBootstrap } from "@/hooks/useAdminBootstrap";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { BrandingSettings } from "@/components/BrandingSettings";
-import Configuracoes from "./Configuracoes";
+import { useBranding } from "@/hooks/useBranding";
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings' | 'configuracoes';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
-  const { config, isLoading: configLoading, hasConfig, loadConfig } = useEmpresaConfig();
-  const navigate = useNavigate();
+  const { branding } = useBranding();
 
-  // Bootstrap admin user
-  useAdminBootstrap();
-
-  // Garantir que a empresa seja carregada após login ou reload (corrigir fluxo OAuth e reload)
-  useEffect(() => {
-    if (isAuthenticated && !configLoading && config === null) {
-      loadConfig?.();
-    }
-  }, [isAuthenticated, configLoading, config, loadConfig]);
-
-  // Corrigir redirecionamento pós-login / OAuth: 
-  useEffect(() => {
-    if (!isLoading && !configLoading) {
-      // Se não autenticado, não faz nada aqui (AuthForm será mostrado)
-      if (!isAuthenticated) return;
-      // Se autenticado e não tem config, vai para /setup (primeiro acesso)
-      if (!hasConfig) {
-        if (window.location.pathname !== '/setup') {
-          navigate('/setup', { replace: true });
-        }
-      } else {
-        // Se autenticado e já tem config, vai para dashboard
-        if (window.location.pathname === '/setup' || window.location.pathname === '/') {
-          navigate('/', { replace: true });
-        }
-      }
-    }
-  }, [isLoading, configLoading, isAuthenticated, hasConfig, navigate]);
-
-  // Voltar para dashboard principal
-  const handleBackToDashboard = () => {
-    setCurrentView('dashboard');
-  };
-
-  // Exibição de loading global enquanto carrega dados essenciais
-  if (isLoading || configLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -76,15 +36,8 @@ const Index = () => {
     );
   }
 
-  // Tela de autenticação se não logado
   if (!isAuthenticated) {
-    return <AuthForm onAuthSuccess={() => loadConfig?.()} />;
-  }
-
-  // Só renderiza conteúdo se houver configuração pronta!
-  if (!hasConfig || !config) {
-    // Isso cobre o caso "entre login e setup" sem piscar outras telas
-    return null;
+    return <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />;
   }
 
   const renderContent = () => {
@@ -92,9 +45,9 @@ const Index = () => {
       case 'dashboard':
         return <Dashboard onViewChange={setCurrentView} />;
       case 'customers':
-        return <CustomerForm onBack={handleBackToDashboard} />;
+        return <CustomerForm />;
       case 'service-orders':
-        return <ServiceOrderForm onBack={handleBackToDashboard} />;
+        return <ServiceOrderForm />;
       case 'history':
         return <CustomerHistory />;
       case 'stock':
@@ -104,15 +57,13 @@ const Index = () => {
       case 'search':
         return <SearchCenter />;
       case 'finalization':
-        return <OSFinalization onBack={handleBackToDashboard} />;
+        return <OSFinalization />;
       case 'webhooks':
         return <WebhookSettings />;
       case 'users':
-        return <UserManagement />;
+        return userProfile?.role === 'admin' ? <UserManagement /> : <Dashboard onViewChange={setCurrentView} />;
       case 'branding-settings':
         return <BrandingSettings onDone={() => setCurrentView('dashboard')} />;
-      case 'configuracoes':
-        return <Configuracoes onBack={handleBackToDashboard} />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }
@@ -144,7 +95,8 @@ const Index = () => {
             </div>
           </div>
           <div className="mb-4 font-extrabold text-2xl text-primary" style={{letterSpacing: '0.5px'}}>
-            {config?.nome_empresa || 'Hi-Tech Soluções'}
+            {/* Mostra nome central acima do conteúdo */}
+            {branding.appName}
           </div>
           {renderContent()}
         </main>
