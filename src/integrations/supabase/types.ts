@@ -198,6 +198,41 @@ export type Database = {
         }
         Relationships: []
       }
+      logs_atividades: {
+        Row: {
+          acao: string
+          created_at: string | null
+          descricao: string
+          id: string
+          ip_address: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          ip_address?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          ip_address?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_atividades_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       n8n_chat_histories: {
         Row: {
           id: number
@@ -341,6 +376,39 @@ export type Database = {
           id?: string
           nome?: string
           telefone?: string | null
+        }
+        Relationships: []
+      }
+      usuarios: {
+        Row: {
+          ativo: boolean | null
+          cargo: string
+          created_at: string | null
+          email: string
+          id: string
+          nome_completo: string
+          senha_hash: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cargo: string
+          created_at?: string | null
+          email: string
+          id?: string
+          nome_completo: string
+          senha_hash: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cargo?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          nome_completo?: string
+          senha_hash?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

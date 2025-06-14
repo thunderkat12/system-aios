@@ -1,5 +1,17 @@
 
-import { Users, FileText, History, Package, Calculator, Home, Wrench, Settings } from "lucide-react";
+import {
+  Home,
+  Users,
+  FileText,
+  History,
+  Package,
+  DollarSign,
+  Search,
+  CheckCircle,
+  Settings,
+  UserCog,
+} from "lucide-react"
+
 import {
   Sidebar,
   SidebarContent,
@@ -9,9 +21,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-} from "@/components/ui/sidebar";
-import type { ViewType } from "@/pages/Index";
+} from "@/components/ui/sidebar"
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
+
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users';
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -21,65 +34,93 @@ interface AppSidebarProps {
 const menuItems = [
   {
     title: "Dashboard",
+    url: "dashboard",
     icon: Home,
-    view: "dashboard" as ViewType,
+    roles: ['admin', 'tecnico', 'atendente']
   },
   {
-    title: "Cadastro de Clientes",
+    title: "Clientes",
+    url: "customers",
     icon: Users,
-    view: "customers" as ViewType,
+    roles: ['admin', 'atendente']
   },
   {
-    title: "Ordem de Serviço",
+    title: "Ordens de Serviço",
+    url: "service-orders",
     icon: FileText,
-    view: "service-orders" as ViewType,
+    roles: ['admin', 'tecnico', 'atendente']
   },
   {
     title: "Histórico",
+    url: "history",
     icon: History,
-    view: "history" as ViewType,
+    roles: ['admin', 'tecnico', 'atendente']
   },
   {
-    title: "Controle de Estoque",
+    title: "Estoque",
+    url: "stock",
     icon: Package,
-    view: "stock" as ViewType,
+    roles: ['admin', 'atendente']
   },
   {
-    title: "Central de Orçamento",
-    icon: Calculator,
-    view: "budget" as ViewType,
+    title: "Financeiro",
+    url: "budget",
+    icon: DollarSign,
+    roles: ['admin']
   },
   {
-    title: "Integrações",
+    title: "Buscar",
+    url: "search",
+    icon: Search,
+    roles: ['admin', 'tecnico', 'atendente']
+  },
+  {
+    title: "Finalizar OS",
+    url: "finalization",
+    icon: CheckCircle,
+    roles: ['admin', 'tecnico']
+  },
+]
+
+const adminItems = [
+  {
+    title: "Gestão de Usuários",
+    url: "users",
+    icon: UserCog,
+    roles: ['admin']
+  },
+  {
+    title: "Webhooks",
+    url: "webhooks",
     icon: Settings,
-    view: "webhooks" as ViewType,
+    roles: ['admin']
   },
-];
+]
 
 export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
+  const { user } = useSupabaseAuth()
+
+  const hasAccess = (roles: string[]) => {
+    return user && roles.includes(user.cargo)
+  }
+
+  const filteredMenuItems = menuItems.filter(item => hasAccess(item.roles))
+  const filteredAdminItems = adminItems.filter(item => hasAccess(item.roles))
+
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <Wrench className="h-6 w-6 text-primary" />
-          <div>
-            <h2 className="font-bold text-sm">Hi-Tech Soluções</h2>
-            <p className="text-xs text-muted-foreground">Sistema de Gestão</p>
-          </div>
-        </div>
-      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel>Hi-Tech Soluções</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.view}>
+              {filteredMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    onClick={() => onViewChange(item.view)}
-                    isActive={currentView === item.view}
+                    onClick={() => onViewChange(item.url as ViewType)}
+                    isActive={currentView === item.url}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -87,7 +128,28 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        
+        {filteredAdminItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administração</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      onClick={() => onViewChange(item.url as ViewType)}
+                      isActive={currentView === item.url}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
-  );
+  )
 }

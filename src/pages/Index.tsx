@@ -11,16 +11,17 @@ import { BudgetCenter } from "@/components/BudgetCenter";
 import { SearchCenter } from "@/components/SearchCenter";
 import { OSFinalization } from "@/components/OSFinalization";
 import { WebhookSettings } from "@/components/WebhookSettings";
-import { Login } from "@/components/Login";
-import { useAuth } from "@/hooks/useAuth";
+import { UserManagement } from "@/components/UserManagement";
+import { AuthForm } from "@/components/AuthForm";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
-  const { isAuthenticated, isLoading, login, logout, user } = useAuth();
+  const { user, isLoading, logout, isAuthenticated } = useSupabaseAuth();
 
   if (isLoading) {
     return (
@@ -34,7 +35,7 @@ const Index = () => {
   }
 
   if (!isAuthenticated) {
-    return <Login onLogin={login} />;
+    return <AuthForm onAuthSuccess={() => setCurrentView('dashboard')} />;
   }
 
   const renderContent = () => {
@@ -57,6 +58,8 @@ const Index = () => {
         return <OSFinalization />;
       case 'webhooks':
         return <WebhookSettings />;
+      case 'users':
+        return user?.cargo === 'admin' ? <UserManagement /> : <Dashboard onViewChange={setCurrentView} />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }
@@ -69,10 +72,13 @@ const Index = () => {
         <main className="flex-1 p-4">
           <div className="mb-4 flex items-center justify-between">
             <SidebarTrigger />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Conectado como: <strong>{user}</strong>
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  <strong>{user?.nome_completo}</strong> ({user?.cargo})
+                </span>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
