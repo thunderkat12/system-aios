@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, EyeOff } from 'lucide-react';
+import { userRegisterSchema } from '@/lib/validation';
+import { useToast } from '@/hooks/use-toast';
 
 interface RegisterData {
   nome_completo: string;
@@ -26,17 +28,41 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
     cargo: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.cargo) {
-      return;
+    
+    try {
+      if (!formData.cargo) {
+        toast({
+          title: "Erro de validação",
+          description: "Selecione um cargo",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate input before submitting
+      userRegisterSchema.parse(formData);
+
+      await onSubmit({
+        ...formData,
+        cargo: formData.cargo as 'admin' | 'tecnico' | 'atendente'
+      });
+      
+      setFormData({ nome_completo: '', email: '', senha: '', cargo: '' });
+    } catch (error: any) {
+      if (error.errors) {
+        // Zod validation error
+        const firstError = error.errors[0];
+        toast({
+          title: "Erro de validação",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      }
     }
-    await onSubmit({
-      ...formData,
-      cargo: formData.cargo as 'admin' | 'tecnico' | 'atendente'
-    });
-    setFormData({ nome_completo: '', email: '', senha: '', cargo: '' });
   };
 
   return (
@@ -75,6 +101,7 @@ export function RegisterForm({ onSubmit, isLoading }: RegisterFormProps) {
             onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
             required
             disabled={isLoading}
+            minLength={6}
           />
           <Button
             type="button"

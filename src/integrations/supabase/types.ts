@@ -43,6 +43,7 @@ export type Database = {
           nome: string
           telefone: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean | null
@@ -53,6 +54,7 @@ export type Database = {
           nome: string
           telefone?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean | null
@@ -63,8 +65,17 @@ export type Database = {
           nome?: string
           telefone?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       CRM: {
         Row: {
@@ -169,6 +180,7 @@ export type Database = {
           nome: string
           quantidade: number
           updated_at: string | null
+          user_id: string | null
           valor_total: number | null
           valor_unitario: number | null
         }
@@ -181,6 +193,7 @@ export type Database = {
           nome: string
           quantidade?: number
           updated_at?: string | null
+          user_id?: string | null
           valor_total?: number | null
           valor_unitario?: number | null
         }
@@ -193,10 +206,19 @@ export type Database = {
           nome?: string
           quantidade?: number
           updated_at?: string | null
+          user_id?: string | null
           valor_total?: number | null
           valor_unitario?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "estoque_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       logs_atividades: {
         Row: {
@@ -265,6 +287,7 @@ export type Database = {
           tecnico_responsavel: string
           tipo_reparo: string
           updated_at: string | null
+          user_id: string | null
           valor: number | null
         }
         Insert: {
@@ -280,6 +303,7 @@ export type Database = {
           tecnico_responsavel: string
           tipo_reparo: string
           updated_at?: string | null
+          user_id?: string | null
           valor?: number | null
         }
         Update: {
@@ -295,6 +319,7 @@ export type Database = {
           tecnico_responsavel?: string
           tipo_reparo?: string
           updated_at?: string | null
+          user_id?: string | null
           valor?: number | null
         }
         Relationships: [
@@ -303,6 +328,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordens_servico_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]
@@ -447,6 +479,14 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      get_current_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       halfvec_avg: {
         Args: { "": number[] }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,8 @@ import { Users, Plus, Trash2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { userRegisterSchema } from '@/lib/validation';
+import { hashPassword, sanitizeEmail, sanitizeString } from '@/lib/auth';
 
 interface Usuario {
   id: string;
@@ -35,13 +36,22 @@ export function UserManagement() {
   });
 
   const { toast } = useToast();
-  const { register, logActivity } = useSupabaseAuth();
+  const { user, logActivity } = useSupabaseAuth();
 
   useEffect(() => {
     loadUsuarios();
   }, []);
 
   const loadUsuarios = async () => {
+    if (!user || user.cargo !== 'admin') {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem gerenciar usuários",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -59,7 +69,6 @@ export function UserManagement() {
         return;
       }
 
-      // Type casting seguro para garantir compatibilidade
       const usuariosTyped: Usuario[] = (data || []).map(user => ({
         ...user,
         cargo: user.cargo as 'admin' | 'tecnico' | 'atendente'
@@ -76,6 +85,15 @@ export function UserManagement() {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user || user.cargo !== 'admin') {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem gerenciar usuários",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!formData.cargo) {
       toast({
         title: "Erro",
@@ -86,16 +104,36 @@ export function UserManagement() {
     }
 
     try {
+      // Validate input
+      const validationData = {
+        nome_completo: formData.nome_completo,
+        email: formData.email,
+        senha: formData.senha,
+        cargo: formData.cargo
+      };
+
+      if (editingUser && !formData.senha) {
+        // For updates without password change, remove senha from validation
+        delete (validationData as any).senha;
+        userRegisterSchema.omit({ senha: true }).parse(validationData);
+      } else {
+        userRegisterSchema.parse(validationData);
+      }
+
+      // Sanitize inputs
+      const sanitizedEmail = sanitizeEmail(formData.email);
+      const sanitizedNome = sanitizeString(formData.nome_completo);
+
       if (editingUser) {
         // Atualizar usuário existente
         const updateData: any = {
-          nome_completo: formData.nome_completo,
-          email: formData.email,
+          nome_completo: sanitizedNome,
+          email: sanitizedEmail,
           cargo: formData.cargo,
         };
 
         if (formData.senha) {
-          updateData.senha_hash = formData.senha;
+          updateData.senha_hash = await hashPassword(formData.senha);
         }
 
         const { error } = await supabase
@@ -104,10 +142,13 @@ export function UserManagement() {
           .eq('id', editingUser.id);
 
         if (error) {
+          if (error.code === '23505') {
+            throw new Error('Este email já está cadastrado');
+          }
           throw error;
         }
 
-        await logActivity('update_user', `Usuário ${formData.nome_completo} foi atualizado`);
+        await logActivity('update_user', `Usuário ${sanitizedNome} foi atualizado`);
         
         toast({
           title: "Sucesso",
@@ -115,12 +156,31 @@ export function UserManagement() {
         });
       } else {
         // Criar novo usuário
-        const result = await register(formData);
-        if (!result.success) {
-          return;
+        const hashedPassword = await hashPassword(formData.senha);
+
+        const { error } = await supabase
+          .from('usuarios')
+          .insert({
+            nome_completo: sanitizedNome,
+            email: sanitizedEmail,
+            senha_hash: hashedPassword,
+            cargo: formData.cargo,
+            ativo: true
+          });
+
+        if (error) {
+          if (error.code === '23505') {
+            throw new Error('Este email já está cadastrado');
+          }
+          throw error;
         }
 
-        await logActivity('create_user', `Novo usuário ${formData.nome_completo} foi criado`);
+        await logActivity('create_user', `Novo usuário ${sanitizedNome} foi criado`);
+        
+        toast({
+          title: "Sucesso",
+          description: "Usuário criado com sucesso",
+        });
       }
 
       setIsDialogOpen(false);
@@ -138,6 +198,24 @@ export function UserManagement() {
   };
 
   const handleDeleteUser = async (usuario: Usuario) => {
+    if (!user || user.cargo !== 'admin') {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem excluir usuários",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (usuario.id === user.id) {
+      toast({
+        title: "Erro",
+        description: "Você não pode excluir sua própria conta",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('usuarios')
@@ -201,6 +279,17 @@ export function UserManagement() {
     }
   };
 
+  if (!user || user.cargo !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">Acesso restrito a administradores</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -254,6 +343,7 @@ export function UserManagement() {
                   value={formData.senha}
                   onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
                   required={!editingUser}
+                  minLength={6}
                 />
               </div>
               <div className="space-y-2">
@@ -331,31 +421,33 @@ export function UserManagement() {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="outline">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir o usuário {usuario.nome_completo}? 
-                            Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteUser(usuario)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {usuario.id !== user?.id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir o usuário {usuario.nome_completo}? 
+                              Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteUser(usuario)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               ))}

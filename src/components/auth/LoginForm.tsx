@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
+import { userLoginSchema } from '@/lib/validation';
+import { useToast } from '@/hooks/use-toast';
 
 interface LoginFormProps {
   onSubmit: (email: string, senha: string) => Promise<void>;
@@ -14,10 +16,26 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(email, senha);
+    
+    try {
+      // Validate input before submitting
+      userLoginSchema.parse({ email, senha });
+      await onSubmit(email, senha);
+    } catch (error: any) {
+      if (error.errors) {
+        // Zod validation error
+        const firstError = error.errors[0];
+        toast({
+          title: "Erro de validação",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   return (
@@ -45,6 +63,7 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
             onChange={(e) => setSenha(e.target.value)}
             required
             disabled={isLoading}
+            minLength={6}
           />
           <Button
             type="button"

@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { hashPassword, verifyPassword, sanitizeEmail, sanitizeString } from '@/lib/auth';
+import { userLoginSchema, userRegisterSchema } from '@/lib/validation';
 
 export interface User {
   id: string;
@@ -25,10 +27,23 @@ export function useSupabaseAuth() {
       const authData = localStorage.getItem('hitech_auth_data');
       if (authData) {
         const userData = JSON.parse(authData);
-        setUser(userData);
+        // Verify the session is still valid by checking if user exists
+        const { data: userExists } = await supabase
+          .from('usuarios')
+          .select('id, nome_completo, email, cargo, ativo')
+          .eq('id', userData.id)
+          .eq('ativo', true)
+          .single();
+
+        if (userExists) {
+          setUser(userExists as User);
+        } else {
+          localStorage.removeItem('hitech_auth_data');
+        }
       }
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error);
+      localStorage.removeItem('hitech_auth_data');
     } finally {
       setIsLoading(false);
     }
@@ -37,13 +52,18 @@ export function useSupabaseAuth() {
   const login = async (email: string, senha: string) => {
     try {
       setIsLoading(true);
-      console.log('Tentativa de login para:', email);
+
+      // Validate input
+      const validatedData = userLoginSchema.parse({ email, senha });
+      const sanitizedEmail = sanitizeEmail(validatedData.email);
+
+      console.log('Tentativa de login para:', sanitizedEmail);
 
       // Buscar usuário no banco
       const { data: usuarios, error } = await supabase
         .from('usuarios')
         .select('*')
-        .eq('email', email)
+        .eq('email', sanitizedEmail)
         .eq('ativo', true)
         .limit(1);
 
@@ -58,8 +78,8 @@ export function useSupabaseAuth() {
 
       const usuario = usuarios[0];
 
-      // Verificação simples de senha (em produção, usar hash)
-      const senhaValida = senha === 'admin123' || senha === usuario.senha_hash;
+      // Verificar senha com hash
+      const senhaValida = await verifyPassword(validatedData.senha, usuario.senha_hash);
 
       if (!senhaValida) {
         throw new Error('Senha incorreta');
@@ -68,7 +88,7 @@ export function useSupabaseAuth() {
       // Salvar dados da sessão com type casting correto
       const userData: User = {
         id: usuario.id,
-        nome_completo: usuario.nome_completo,
+        nome_completo: sanitizeString(usuario.nome_completo),
         email: usuario.email,
         cargo: usuario.cargo as 'admin' | 'tecnico' | 'atendente',
         ativo: usuario.ativo
@@ -77,23 +97,29 @@ export function useSupabaseAuth() {
       localStorage.setItem('hitech_auth_data', JSON.stringify(userData));
       setUser(userData);
 
-      // Log da atividade usando inserção direta
-      await logActivity('login', `Login realizado por ${usuario.nome_completo}`, usuario.id);
+      // Log da atividade
+      await logActivity('login', `Login realizado por ${userData.nome_completo}`, usuario.id);
 
       toast({
         title: "Login realizado com sucesso!",
-        description: `Bem-vindo, ${usuario.nome_completo}`,
+        description: `Bem-vindo, ${userData.nome_completo}`,
       });
 
       return { success: true };
     } catch (error: any) {
       console.error('Erro no login:', error);
+      
+      let errorMessage = 'Erro interno do sistema';
+      if (error.message.includes('não encontrado') || error.message.includes('Senha incorreta')) {
+        errorMessage = 'Email ou senha incorretos';
+      }
+      
       toast({
         title: "Erro no login",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
-      return { success: false, error: error.message };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -108,13 +134,23 @@ export function useSupabaseAuth() {
     try {
       setIsLoading(true);
 
+      // Validate input
+      const validatedData = userRegisterSchema.parse(dados);
+
+      // Sanitize inputs
+      const sanitizedEmail = sanitizeEmail(validatedData.email);
+      const sanitizedNome = sanitizeString(validatedData.nome_completo);
+
+      // Hash password
+      const hashedPassword = await hashPassword(validatedData.senha);
+
       const { error } = await supabase
         .from('usuarios')
         .insert({
-          nome_completo: dados.nome_completo,
-          email: dados.email,
-          senha_hash: dados.senha, // Em produção, fazer hash da senha
-          cargo: dados.cargo,
+          nome_completo: sanitizedNome,
+          email: sanitizedEmail,
+          senha_hash: hashedPassword,
+          cargo: validatedData.cargo,
           ativo: true
         });
 
@@ -134,12 +170,15 @@ export function useSupabaseAuth() {
       return { success: true };
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
+      
+      let errorMessage = error.message || 'Erro interno do sistema';
+      
       toast({
         title: "Erro no cadastro",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
-      return { success: false, error: error.message };
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -164,13 +203,12 @@ export function useSupabaseAuth() {
 
   const logActivity = async (acao: string, descricao: string, usuarioId?: string) => {
     try {
-      // Inserção direta no banco para evitar problemas de TypeScript com RPC
       await supabase
         .from('logs_atividades')
         .insert({
           usuario_id: usuarioId || user?.id,
-          acao,
-          descricao
+          acao: sanitizeString(acao),
+          descricao: sanitizeString(descricao)
         });
     } catch (error) {
       console.error('Erro ao registrar log:', error);

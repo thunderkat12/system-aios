@@ -1,6 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { clientSchema, ClientData } from '@/lib/validation';
+import { sanitizeString } from '@/lib/auth';
 
 export interface Client {
   id: string;
@@ -9,6 +12,7 @@ export interface Client {
   email: string | null;
   endereco: string | null;
   ativo: boolean | null;
+  user_id: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -16,8 +20,11 @@ export interface Client {
 export function useClientsData() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useSupabaseAuth();
 
   const fetchClients = async () => {
+    if (!user) return { data: [], error: 'Usuário não autenticado' };
+    
     try {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -40,11 +47,26 @@ export function useClientsData() {
     }
   };
 
-  const addClient = async (client: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+  const addClient = async (clientData: ClientData) => {
+    if (!user) return { data: null, error: 'Usuário não autenticado' };
+
     try {
+      // Validate input
+      const validatedData = clientSchema.parse(clientData);
+
+      // Sanitize inputs
+      const sanitizedClient = {
+        nome: sanitizeString(validatedData.nome),
+        telefone: validatedData.telefone ? sanitizeString(validatedData.telefone) : null,
+        email: validatedData.email ? sanitizeString(validatedData.email) : null,
+        endereco: validatedData.endereco ? sanitizeString(validatedData.endereco) : null,
+        ativo: true,
+        user_id: user.id
+      };
+
       const { data, error } = await supabase
         .from('clientes')
-        .insert(client)
+        .insert(sanitizedClient)
         .select()
         .single();
 
@@ -61,11 +83,32 @@ export function useClientsData() {
     }
   };
 
-  const updateClient = async (id: string, client: Partial<Client>) => {
+  const updateClient = async (id: string, clientData: Partial<ClientData>) => {
+    if (!user) return { data: null, error: 'Usuário não autenticado' };
+
     try {
+      // Validate input if provided
+      if (Object.keys(clientData).length > 0) {
+        clientSchema.partial().parse(clientData);
+      }
+
+      // Sanitize inputs
+      const sanitizedData: any = { updated_at: new Date().toISOString() };
+      
+      if (clientData.nome) sanitizedData.nome = sanitizeString(clientData.nome);
+      if (clientData.telefone !== undefined) {
+        sanitizedData.telefone = clientData.telefone ? sanitizeString(clientData.telefone) : null;
+      }
+      if (clientData.email !== undefined) {
+        sanitizedData.email = clientData.email ? sanitizeString(clientData.email) : null;
+      }
+      if (clientData.endereco !== undefined) {
+        sanitizedData.endereco = clientData.endereco ? sanitizeString(clientData.endereco) : null;
+      }
+
       const { data, error } = await supabase
         .from('clientes')
-        .update({ ...client, updated_at: new Date().toISOString() })
+        .update(sanitizedData)
         .eq('id', id)
         .select()
         .single();
@@ -84,6 +127,8 @@ export function useClientsData() {
   };
 
   const deleteClient = async (id: string) => {
+    if (!user) return { error: 'Usuário não autenticado' };
+
     try {
       const { error } = await supabase
         .from('clientes')
@@ -104,8 +149,10 @@ export function useClientsData() {
   };
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    if (user) {
+      fetchClients();
+    }
+  }, [user]);
 
   return {
     clients,
