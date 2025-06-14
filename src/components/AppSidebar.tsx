@@ -22,7 +22,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth"
+import { useAuth } from "@/hooks/useAuth"
 
 export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users';
 
@@ -98,10 +98,10 @@ const adminItems = [
 ]
 
 export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
-  const { user } = useSupabaseAuth()
+  const { userProfile } = useAuth()
 
   const hasAccess = (roles: string[]) => {
-    return user && roles.includes(user.cargo)
+    return userProfile && roles.includes(userProfile.role)
   }
 
   const filteredMenuItems = menuItems.filter(item => hasAccess(item.roles))
