@@ -31,7 +31,9 @@ export function useAdminBootstrap() {
         return;
       }
 
-      const adminAuth = usersAuth?.users.find(
+      // Adicione tipagem adequada: (as any[]) se não houver melhor
+      const users: any[] = usersAuth?.users ?? [];
+      const adminAuth = users.find(
         (u) => u.email === "admin@hitech.com"
       );
 
@@ -83,4 +85,3 @@ export function useAdminBootstrap() {
     };
   }, []);
 }
-
