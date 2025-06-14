@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -25,6 +26,10 @@ const Index = () => {
   const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
   const { branding } = useBranding();
 
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -45,9 +50,9 @@ const Index = () => {
       case 'dashboard':
         return <Dashboard onViewChange={setCurrentView} />;
       case 'customers':
-        return <CustomerForm />;
+        return <CustomerForm onBack={handleBackToDashboard} />;
       case 'service-orders':
-        return <ServiceOrderForm />;
+        return <ServiceOrderForm onBack={handleBackToDashboard} />;
       case 'history':
         return <CustomerHistory />;
       case 'stock':
@@ -57,7 +62,7 @@ const Index = () => {
       case 'search':
         return <SearchCenter />;
       case 'finalization':
-        return <OSFinalization />;
+        return <OSFinalization onBack={handleBackToDashboard} />;
       case 'webhooks':
         return <WebhookSettings />;
       case 'users':
