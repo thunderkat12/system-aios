@@ -32,11 +32,17 @@ export function useEmpresaConfig() {
     if (!user) return;
 
     try {
-      // Tipagem ajustada usando as any
       const { data, error } = await (supabase.rpc as any)("get_empresa_config", { p_user_id: user.id });
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading empresa config:', error);
+        toast({
+          title: "Erro de segurança",
+          description: "Acesso negado à configuração da empresa.",
+          variant: "destructive"
+        });
+        setHasConfig(false);
+        setConfig(null);
         return;
       }
 
@@ -44,22 +50,32 @@ export function useEmpresaConfig() {
         const configData = data[0] as EmpresaConfig;
         setConfig(configData);
         setHasConfig(true);
-        // Aplicar tema
         applyTheme(configData.tema_primario, configData.tema_secundario);
       } else {
         setHasConfig(false);
+        setConfig(null);
       }
     } catch (error) {
       console.error('Error loading empresa config:', error);
+      setHasConfig(false);
+      setConfig(null);
+      toast({
+        title: "Falha de autenticação",
+        description: "Não foi possível carregar a configuração da empresa: tente novamente.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const createConfig = async (configData: Omit<EmpresaConfig, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const createConfig = async (
+    configData: Omit<EmpresaConfig, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+  ) => {
     if (!user) return { success: false, error: 'Usuário não autenticado' };
 
     try {
+      // Always pass the user_id from the session
       const { data, error } = await (supabase.rpc as any)("create_empresa_config", {
         p_user_id: user.id,
         p_nome_empresa: configData.nome_empresa,
@@ -70,6 +86,13 @@ export function useEmpresaConfig() {
 
       if (error) {
         console.error('Error creating config:', error);
+        toast({
+          title: "Erro ao criar configuração",
+          description: error.message === "new row violates row-level security policy for table \"empresa_config\""
+            ? "Você não tem permissão para criar esta configuração."
+            : error.message,
+          variant: "destructive"
+        });
         return { success: false, error: error.message };
       }
 
@@ -90,11 +113,18 @@ export function useEmpresaConfig() {
       return { success: false, error: 'Falha ao criar configuração' };
     } catch (error: any) {
       console.error('Error creating config:', error);
+      toast({
+        title: "Falha de autenticação",
+        description: "Não foi possível criar a configuração: tente novamente.",
+        variant: "destructive"
+      });
       return { success: false, error: error.message };
     }
   };
 
-  const updateConfig = async (updates: Partial<Omit<EmpresaConfig, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+  const updateConfig = async (
+    updates: Partial<Omit<EmpresaConfig, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
+  ) => {
     if (!user || !config) return { success: false, error: 'Configuração não encontrada' };
 
     try {
@@ -108,20 +138,25 @@ export function useEmpresaConfig() {
 
       if (error) {
         console.error('Error updating config:', error);
+        toast({
+          title: "Erro ao atualizar configuração",
+          description: error.message === "row update violates row-level security policy for table \"empresa_config\""
+            ? "Você não tem permissão para atualizar esta configuração."
+            : error.message,
+          variant: "destructive"
+        });
         return { success: false, error: error.message };
       }
 
       if (Array.isArray(data) && data.length > 0) {
         const updatedConfig = data[0] as EmpresaConfig;
         setConfig(updatedConfig);
-        
         if (updates.tema_primario || updates.tema_secundario) {
           applyTheme(
-            updates.tema_primario || config.tema_primario, 
+            updates.tema_primario || config.tema_primario,
             updates.tema_secundario || config.tema_secundario
           );
         }
-
         toast({
           title: "Configuração atualizada!",
           description: "Suas alterações foram salvas com sucesso.",
@@ -133,14 +168,17 @@ export function useEmpresaConfig() {
       return { success: false, error: 'Falha ao atualizar configuração' };
     } catch (error: any) {
       console.error('Error updating config:', error);
+      toast({
+        title: "Falha de autenticação",
+        description: "Não foi possível atualizar a configuração: tente novamente.",
+        variant: "destructive"
+      });
       return { success: false, error: error.message };
     }
   };
 
   const applyTheme = (primario: string, secundario: string) => {
     const root = document.documentElement;
-    
-    // Converter hex para HSL para usar no Tailwind
     const hexToHsl = (hex: string): string => {
       let r = 0, g = 0, b = 0;
       if (hex.length === 4) {

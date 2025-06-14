@@ -170,6 +170,47 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa_config: {
+        Row: {
+          created_at: string
+          id: string
+          nome_empresa: string
+          tema_primario: string
+          tema_secundario: string
+          updated_at: string
+          user_id: string
+          webhook_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome_empresa: string
+          tema_primario: string
+          tema_secundario: string
+          updated_at?: string
+          user_id: string
+          webhook_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_empresa?: string
+          tema_primario?: string
+          tema_secundario?: string
+          updated_at?: string
+          user_id?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empresa_config_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque: {
         Row: {
           categoria: string | null
