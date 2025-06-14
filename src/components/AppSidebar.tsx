@@ -1,4 +1,3 @@
-
 import {
   Home,
   Users,
@@ -23,8 +22,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/useAuth"
+import { useBranding } from "@/hooks/useBranding"
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings';
 
 interface AppSidebarProps {
   currentView: ViewType;
@@ -95,10 +95,17 @@ const adminItems = [
     icon: Settings,
     roles: ['admin']
   },
+  {
+    title: "Configuração",
+    url: "branding-settings",
+    icon: Settings,
+    roles: ['admin']
+  },
 ]
 
 export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
   const { userProfile } = useAuth()
+  const { branding } = useBranding();
 
   const hasAccess = (roles: string[]) => {
     return userProfile && roles.includes(userProfile.role)
@@ -111,7 +118,9 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Hi-Tech Soluções</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            {branding.appName}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredMenuItems.map((item) => (
@@ -128,7 +137,6 @@ export function AppSidebar({ currentView, onViewChange }: AppSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
         {filteredAdminItems.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Administração</SidebarGroupLabel>

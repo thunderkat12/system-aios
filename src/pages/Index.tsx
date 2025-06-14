@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -16,12 +15,15 @@ import { AuthForm } from "@/components/AuthForm";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { BrandingSettings } from "@/components/BrandingSettings";
+import { useBranding } from "@/hooks/useBranding";
 
-export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users';
+export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' | 'stock' | 'budget' | 'search' | 'finalization' | 'webhooks' | 'users' | 'branding-settings';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
+  const { branding } = useBranding();
 
   if (isLoading) {
     return (
@@ -60,6 +62,8 @@ const Index = () => {
         return <WebhookSettings />;
       case 'users':
         return userProfile?.role === 'admin' ? <UserManagement /> : <Dashboard onViewChange={setCurrentView} />;
+      case 'branding-settings':
+        return <BrandingSettings onDone={() => setCurrentView('dashboard')} />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }
@@ -89,6 +93,10 @@ const Index = () => {
                 Sair
               </Button>
             </div>
+          </div>
+          <div className="mb-4 font-extrabold text-2xl text-primary" style={{letterSpacing: '0.5px'}}>
+            {/* Mostra nome central acima do conteúdo */}
+            {branding.appName}
           </div>
           {renderContent()}
         </main>
