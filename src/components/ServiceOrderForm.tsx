@@ -2,13 +2,17 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
 import { FormFields, ServiceOrderData } from "./service-order/FormFields";
 import { NotificationInfo } from "./service-order/NotificationInfo";
 import { useServiceOrderSubmit } from "./service-order/useServiceOrderSubmit";
 import { REPAIR_TYPES, TECHNICIANS, PAYMENT_METHODS } from "./service-order/constants";
 
-export function ServiceOrderForm() {
+interface ServiceOrderFormProps {
+  onBack?: () => void;
+}
+
+export function ServiceOrderForm({ onBack }: ServiceOrderFormProps) {
   const [osData, setOsData] = useState<ServiceOrderData>({
     customerName: "",
     customerWhatsapp: "",
@@ -52,14 +56,22 @@ export function ServiceOrderForm() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
-          <FileText className="h-8 w-8" />
-          Ordem de Serviço
-        </h1>
-        <p className="text-muted-foreground">
-          Geração automática de OS com integração completa ao n8n
-        </p>
+      <div className="flex items-center gap-4">
+        {onBack && (
+          <Button variant="outline" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+        )}
+        <div>
+          <h1 className="text-3xl font-bold text-primary flex items-center gap-2">
+            <FileText className="h-8 w-8" />
+            Ordem de Serviço
+          </h1>
+          <p className="text-muted-foreground">
+            Geração automática de OS com integração completa ao n8n
+          </p>
+        </div>
       </div>
 
       <Card className="max-w-4xl">
