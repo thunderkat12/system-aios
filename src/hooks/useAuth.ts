@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -138,62 +137,39 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Validate inputs
+      // Validar apenas se os campos estão vazios
       if (!email || !password) {
-        throw new Error('Email e senha são obrigatórios');
+        throw new Error();
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
-        password,
+        password
       });
 
       if (error) {
-        // Diagnóstico específico para usuário não registrado no Auth do Supabase
-        let errorMessage = 'Email ou senha incorretos';
-        if (error.message?.includes('Invalid login credentials')) {
-          // Checa se existe o usuário na tabela usuarios para diagnóstico
-          const { data: u } = await supabase
-            .from("usuarios")
-            .select("email")
-            .eq("email", email.toLowerCase().trim())
-            .maybeSingle();
-          if (u && !data?.user) {
-            errorMessage =
-              "O cadastro desse usuário foi feito somente no banco, mas não foi registrado pelo Supabase Auth. Crie o usuário usando o cadastro do sistema para conseguir logar.";
-          } else {
-            errorMessage = 'Email ou senha incorretos';
-          }
-        } else if (error.message?.includes('Email not confirmed')) {
-          errorMessage = 'Confirme seu email antes de fazer login';
-        } else if (error.message?.includes('Too many requests')) {
-          errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
-        }
-
+        // Independente do erro, mensagem única e genérica
         toast({
           title: "Erro no login",
-          description: errorMessage,
-          variant: "destructive",
+          description: "Usuário ou senha inválidos.",
+          variant: "destructive"
         });
-
-        return { success: false, error: errorMessage };
+        return { success: false, error: "Usuário ou senha inválidos." };
       }
 
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta!",
+        description: "Bem-vindo de volta!"
       });
 
       return { success: true, error: null };
-    } catch (error: any) {
-      let errorMessage = 'Erro desconhecido ao tentar logar';
+    } catch {
       toast({
         title: "Erro no login",
-        description: errorMessage,
-        variant: "destructive",
+        description: "Usuário ou senha inválidos.",
+        variant: "destructive"
       });
-
-      return { success: false, error: errorMessage };
+      return { success: false, error: "Usuário ou senha inválidos." };
     }
   };
 
