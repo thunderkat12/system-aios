@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { authRateLimit } from '@/lib/authRateLimit';
 
 export interface UserProfile {
   id: string;
@@ -136,6 +137,20 @@ export function useAuth() {
   };
 
   const signIn = async (email: string, password: string) => {
+    const identifier = email.toLowerCase().trim();
+    
+    // Check rate limit before attempting login
+    const rateCheck = authRateLimit.checkRateLimit(identifier);
+    if (!rateCheck.allowed) {
+      const minutes = Math.ceil((rateCheck.timeRemaining || 0) / 60);
+      toast({
+        title: "Muitas tentativas de login",
+        description: `Aguarde ${minutes} minuto(s) antes de tentar novamente.`,
+        variant: "destructive"
+      });
+      return { success: false, error: "Muitas tentativas de login" };
+    }
+
     try {
       // Validar apenas se os campos estão vazios
       if (!email || !password) {
@@ -143,19 +158,29 @@ export function useAuth() {
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
+        email: identifier,
         password
       });
 
       if (error) {
-        // Independente do erro, mensagem única e genérica
+        // Record failed attempt
+        authRateLimit.recordAttempt(identifier, false);
+        
+        const remaining = authRateLimit.getRemainingAttempts(identifier);
+        const warningMessage = remaining > 0 
+          ? ` (${remaining} tentativas restantes)`
+          : '';
+
         toast({
           title: "Erro no login",
-          description: "Usuário ou senha inválidos.",
+          description: `Usuário ou senha inválidos.${warningMessage}`,
           variant: "destructive"
         });
         return { success: false, error: "Usuário ou senha inválidos." };
       }
+
+      // Record successful attempt
+      authRateLimit.recordAttempt(identifier, true);
 
       toast({
         title: "Login realizado com sucesso!",
@@ -164,6 +189,9 @@ export function useAuth() {
 
       return { success: true, error: null };
     } catch {
+      // Record failed attempt
+      authRateLimit.recordAttempt(identifier, false);
+      
       toast({
         title: "Erro no login",
         description: "Usuário ou senha inválidos.",
