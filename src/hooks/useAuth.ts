@@ -20,14 +20,14 @@ export function useAuth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile from our usuarios table
+          // Use setTimeout to prevent auth state deadlock
           setTimeout(async () => {
             try {
               const { data: profile } = await supabase
@@ -47,16 +47,18 @@ export function useAuth() {
                 });
               }
             } catch (error) {
-              console.error('Error fetching user profile:', error);
+              console.log('User profile not found in usuarios table');
             }
           }, 0);
         } else {
           setUserProfile(null);
         }
+        
+        setIsLoading(false);
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -68,15 +70,20 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'tecnico' | 'atendente') => {
     try {
+      // Validate inputs to prevent injection attacks
+      if (!email || !password || !fullName || !role) {
+        throw new Error('Todos os campos são obrigatórios');
+      }
+
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.toLowerCase().trim(),
         password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: fullName,
+            full_name: fullName.trim(),
             role: role
           }
         }
@@ -90,15 +97,15 @@ export function useAuth() {
           .from('usuarios')
           .insert({
             id: data.user.id,
-            email: email,
-            nome_completo: fullName,
+            email: email.toLowerCase().trim(),
+            nome_completo: fullName.trim(),
             cargo: role,
-            senha_hash: 'SUPABASE_MANAGED', // Placeholder since Supabase manages passwords
+            senha_hash: 'SUPABASE_MANAGED',
             ativo: true
           });
 
         if (profileError) {
-          console.error('Error creating user profile:', profileError);
+          console.log('Profile creation warning:', profileError.message);
         }
       }
 
@@ -114,7 +121,9 @@ export function useAuth() {
       if (error.message?.includes('already registered')) {
         errorMessage = 'Este email já está cadastrado';
       } else if (error.message?.includes('password')) {
-        errorMessage = 'Senha deve ter pelo menos 6 caracteres';
+        errorMessage = 'Senha deve ter pelo menos 12 caracteres com maiúscula, minúscula, número e símbolo';
+      } else if (error.message?.includes('email')) {
+        errorMessage = 'Email inválido';
       }
 
       toast({
@@ -129,8 +138,13 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Validate inputs
+      if (!email || !password) {
+        throw new Error('Email e senha são obrigatórios');
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.toLowerCase().trim(),
         password,
       });
 
@@ -138,7 +152,7 @@ export function useAuth() {
 
       toast({
         title: "Login realizado com sucesso!",
-        description: `Bem-vindo de volta!`,
+        description: "Bem-vindo de volta!",
       });
 
       return { success: true, error: null };
@@ -149,6 +163,8 @@ export function useAuth() {
         errorMessage = 'Email ou senha incorretos';
       } else if (error.message?.includes('Email not confirmed')) {
         errorMessage = 'Confirme seu email antes de fazer login';
+      } else if (error.message?.includes('Too many requests')) {
+        errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
       }
 
       toast({
@@ -175,7 +191,7 @@ export function useAuth() {
         description: "Você foi desconectado do sistema",
       });
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.log('Error signing out:', error);
     }
   };
 

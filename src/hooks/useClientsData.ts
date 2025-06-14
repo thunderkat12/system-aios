@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { clientSchema, ClientData } from '@/lib/validation';
+import { secureLog, getGenericErrorMessage } from '@/lib/secureLogging';
 
 export interface Client {
   id: string;
@@ -16,9 +16,9 @@ export interface Client {
   updated_at?: string;
 }
 
-// Sanitization function (XSS protection)
+// Enhanced sanitization function with stricter security
 const sanitizeString = (input: string): string => {
-  return input.trim().replace(/[<>]/g, '').slice(0, 1000);
+  return input.trim().replace(/[<>\"'&]/g, '').slice(0, 1000);
 };
 
 export function useClientsData() {
@@ -31,6 +31,7 @@ export function useClientsData() {
     
     try {
       setIsLoading(true);
+      secureLog.audit('fetch_clients', user.id, { role: userProfile.role });
       
       // Implement user-based access control using Supabase user ID
       let query = supabase.from('clientes').select('*');
@@ -43,13 +44,14 @@ export function useClientsData() {
       const { data, error } = await query.order('nome');
 
       if (error) {
+        secureLog.error('Error fetching clients', error);
         throw error;
       }
 
       setClients(data || []);
       return { data: data || [], error: null };
-    } catch (error) {
-      return { data: [], error: 'Erro ao carregar clientes' };
+    } catch (error: any) {
+      return { data: [], error: getGenericErrorMessage(error) };
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +63,7 @@ export function useClientsData() {
     try {
       // Validate input
       const validatedData = clientSchema.parse(clientData);
+      secureLog.audit('add_client', user.id, { clientName: validatedData.nome });
 
       // Sanitize inputs
       const sanitizedClient = {
@@ -79,13 +82,14 @@ export function useClientsData() {
         .single();
 
       if (error) {
+        secureLog.error('Error adding client', error);
         throw error;
       }
 
       await fetchClients();
       return { data, error: null };
-    } catch (error) {
-      return { data: null, error: 'Erro ao adicionar cliente' };
+    } catch (error: any) {
+      return { data: null, error: getGenericErrorMessage(error) };
     }
   };
 
@@ -105,6 +109,7 @@ export function useClientsData() {
       }
 
       if (userProfile.role !== 'admin' && existingClient.user_id !== user.id) {
+        secureLog.audit('unauthorized_client_update_attempt', user.id, { clientId: id });
         return { data: null, error: 'Acesso negado' };
       }
 
@@ -112,6 +117,8 @@ export function useClientsData() {
       if (Object.keys(clientData).length > 0) {
         clientSchema.partial().parse(clientData);
       }
+
+      secureLog.audit('update_client', user.id, { clientId: id });
 
       const sanitizedData: any = { updated_at: new Date().toISOString() };
       
@@ -134,13 +141,14 @@ export function useClientsData() {
         .single();
 
       if (error) {
+        secureLog.error('Error updating client', error);
         throw error;
       }
 
       await fetchClients();
       return { data, error: null };
-    } catch (error) {
-      return { data: null, error: 'Erro ao atualizar cliente' };
+    } catch (error: any) {
+      return { data: null, error: getGenericErrorMessage(error) };
     }
   };
 
@@ -160,8 +168,11 @@ export function useClientsData() {
       }
 
       if (userProfile.role !== 'admin' && existingClient.user_id !== user.id) {
+        secureLog.audit('unauthorized_client_delete_attempt', user.id, { clientId: id });
         return { error: 'Acesso negado' };
       }
+
+      secureLog.audit('delete_client', user.id, { clientId: id });
 
       const { error } = await supabase
         .from('clientes')
@@ -169,13 +180,14 @@ export function useClientsData() {
         .eq('id', id);
 
       if (error) {
+        secureLog.error('Error deleting client', error);
         throw error;
       }
 
       await fetchClients();
       return { error: null };
-    } catch (error) {
-      return { error: 'Erro ao excluir cliente' };
+    } catch (error: any) {
+      return { error: getGenericErrorMessage(error) };
     }
   };
 

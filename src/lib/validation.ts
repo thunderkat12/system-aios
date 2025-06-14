@@ -10,7 +10,7 @@ export const userLoginSchema = z.object({
     .toLowerCase()
     .trim(),
   senha: z.string()
-    .min(8, 'Senha deve ter pelo menos 8 caracteres')
+    .min(12, 'Senha deve ter pelo menos 12 caracteres')
     .max(128, 'Senha muito longa')
 });
 

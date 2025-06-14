@@ -22,13 +22,13 @@ interface Usuario {
   created_at: string;
 }
 
-// Sanitization function (XSS protection)
+// Enhanced sanitization function with stricter security
 const sanitizeString = (input: string): string => {
-  return input.trim().replace(/[<>]/g, '').slice(0, 1000);
+  return input.trim().replace(/[<>\"'&]/g, '').slice(0, 1000);
 };
 
 const sanitizeEmail = (email: string): string => {
-  return email.toLowerCase().trim();
+  return email.toLowerCase().trim().replace(/[<>\"'&]/g, '');
 };
 
 export function UserManagement() {
@@ -77,7 +77,7 @@ export function UserManagement() {
       }));
 
       setUsuarios(usuariosTyped);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro",
         description: "Erro ao carregar lista de usuários",
@@ -189,9 +189,10 @@ export function UserManagement() {
     }
 
     try {
+      // Only deactivate user instead of deleting to maintain data integrity
       const { error } = await supabase
         .from('usuarios')
-        .delete()
+        .update({ ativo: false })
         .eq('id', usuario.id);
 
       if (error) {
@@ -200,14 +201,14 @@ export function UserManagement() {
 
       toast({
         title: "Sucesso",
-        description: "Usuário excluído com sucesso",
+        description: "Usuário desativado com sucesso",
       });
 
       loadUsuarios();
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: "Erro ao excluir usuário",
+        description: "Erro ao desativar usuário",
         variant: "destructive",
       });
     }
@@ -290,6 +291,7 @@ export function UserManagement() {
                   value={formData.nome_completo}
                   onChange={(e) => setFormData(prev => ({ ...prev, nome_completo: e.target.value }))}
                   required
+                  maxLength={100}
                 />
               </div>
               <div className="space-y-2">
@@ -300,6 +302,7 @@ export function UserManagement() {
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   required
+                  maxLength={254}
                 />
               </div>
               <div className="space-y-2">
@@ -313,6 +316,7 @@ export function UserManagement() {
                   onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
                   required={!editingUser}
                   minLength={12}
+                  maxLength={128}
                   placeholder="Mínimo 12 caracteres com maiúscula, minúscula, número e símbolo"
                 />
               </div>
@@ -400,10 +404,10 @@ export function UserManagement() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogTitle>Confirmar desativação</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Tem certeza que deseja excluir o usuário {usuario.nome_completo}? 
-                              Esta ação não pode ser desfeita.
+                              Tem certeza que deseja desativar o usuário {usuario.nome_completo}? 
+                              O usuário não poderá mais acessar o sistema.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -412,7 +416,7 @@ export function UserManagement() {
                               onClick={() => handleDeleteUser(usuario)}
                               className="bg-red-600 hover:bg-red-700"
                             >
-                              Excluir
+                              Desativar
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
