@@ -10,7 +10,7 @@ export const userLoginSchema = z.object({
     .toLowerCase()
     .trim(),
   senha: z.string()
-    .min(6, 'Senha deve ter pelo menos 6 caracteres')
+    .min(8, 'Senha deve ter pelo menos 8 caracteres')
     .max(128, 'Senha muito longa')
 });
 
@@ -26,11 +26,12 @@ export const userRegisterSchema = z.object({
     .toLowerCase()
     .trim(),
   senha: z.string()
-    .min(8, 'Senha deve ter pelo menos 8 caracteres')
+    .min(12, 'Senha deve ter pelo menos 12 caracteres')
     .max(128, 'Senha muito longa')
     .refine(val => /[A-Z]/.test(val), 'Senha deve conter pelo menos uma letra maiúscula')
     .refine(val => /[a-z]/.test(val), 'Senha deve conter pelo menos uma letra minúscula')
-    .refine(val => /[0-9]/.test(val), 'Senha deve conter pelo menos um número'),
+    .refine(val => /[0-9]/.test(val), 'Senha deve conter pelo menos um número')
+    .refine(val => /[!@#$%^&*(),.?":{}|<>]/.test(val), 'Senha deve conter pelo menos um caractere especial'),
   cargo: z.enum(['admin', 'tecnico', 'atendente'], { 
     required_error: 'Cargo é obrigatório',
     invalid_type_error: 'Cargo inválido' 

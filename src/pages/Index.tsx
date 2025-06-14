@@ -13,7 +13,7 @@ import { OSFinalization } from "@/components/OSFinalization";
 import { WebhookSettings } from "@/components/WebhookSettings";
 import { UserManagement } from "@/components/UserManagement";
 import { AuthForm } from "@/components/AuthForm";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 
@@ -21,7 +21,7 @@ export type ViewType = 'dashboard' | 'customers' | 'service-orders' | 'history' 
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
-  const { user, isLoading, logout, isAuthenticated } = useSupabaseAuth();
+  const { userProfile, isLoading, signOut, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -59,7 +59,7 @@ const Index = () => {
       case 'webhooks':
         return <WebhookSettings />;
       case 'users':
-        return user?.cargo === 'admin' ? <UserManagement /> : <Dashboard onViewChange={setCurrentView} />;
+        return userProfile?.role === 'admin' ? <UserManagement /> : <Dashboard onViewChange={setCurrentView} />;
       default:
         return <Dashboard onViewChange={setCurrentView} />;
     }
@@ -76,13 +76,13 @@ const Index = () => {
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  <strong>{user?.nome_completo}</strong> ({user?.cargo})
+                  <strong>{userProfile?.full_name}</strong> ({userProfile?.role})
                 </span>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={logout}
+                onClick={signOut}
                 className="flex items-center gap-2"
               >
                 <LogOut className="h-4 w-4" />

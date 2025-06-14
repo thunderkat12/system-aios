@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { stockSchema, StockData } from '@/lib/validation';
-import { sanitizeString } from '@/lib/auth';
 
 export interface StockItem {
   id: string;
@@ -19,13 +17,18 @@ export interface StockItem {
   updated_at?: string;
 }
 
+// Sanitization function (XSS protection)
+const sanitizeString = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '').slice(0, 1000);
+};
+
 export function useStockData() {
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useSupabaseAuth();
+  const { userProfile, user } = useAuth();
 
   const fetchStockItems = async () => {
-    if (!user) return { data: [], error: 'Usuário não autenticado' };
+    if (!user || !userProfile) return { data: [], error: 'Usuário não autenticado' };
     
     try {
       setIsLoading(true);
@@ -37,23 +40,21 @@ export function useStockData() {
         .order('nome');
 
       if (error) {
-        console.error('Erro ao buscar estoque:', error);
-        return { data: [], error };
+        throw error;
       }
 
       setStockItems(data || []);
       return { data: data || [], error: null };
     } catch (error) {
-      console.error('Erro ao buscar estoque:', error);
-      return { data: [], error };
+      return { data: [], error: 'Erro ao carregar estoque' };
     } finally {
       setIsLoading(false);
     }
   };
 
   const addStockItem = async (itemData: StockData) => {
-    if (!user) return { data: null, error: 'Usuário não autenticado' };
-    if (user.cargo !== 'admin') return { data: null, error: 'Apenas administradores podem adicionar itens ao estoque' };
+    if (!user || !userProfile) return { data: null, error: 'Usuário não autenticado' };
+    if (userProfile.role !== 'admin') return { data: null, error: 'Apenas administradores podem adicionar itens ao estoque' };
 
     try {
       // Validate input
@@ -76,21 +77,19 @@ export function useStockData() {
         .single();
 
       if (error) {
-        console.error('Erro ao adicionar item:', error);
-        return { data: null, error };
+        throw error;
       }
 
       await fetchStockItems();
       return { data, error: null };
     } catch (error) {
-      console.error('Erro ao adicionar item:', error);
-      return { data: null, error };
+      return { data: null, error: 'Erro ao adicionar item' };
     }
   };
 
   const updateStockItem = async (id: string, itemData: Partial<StockData>) => {
-    if (!user) return { data: null, error: 'Usuário não autenticado' };
-    if (user.cargo !== 'admin') return { data: null, error: 'Apenas administradores podem atualizar o estoque' };
+    if (!user || !userProfile) return { data: null, error: 'Usuário não autenticado' };
+    if (userProfile.role !== 'admin') return { data: null, error: 'Apenas administradores podem atualizar o estoque' };
 
     try {
       // Validate input if provided
@@ -120,21 +119,19 @@ export function useStockData() {
         .single();
 
       if (error) {
-        console.error('Erro ao atualizar item:', error);
-        return { data: null, error };
+        throw error;
       }
 
       await fetchStockItems();
       return { data, error: null };
     } catch (error) {
-      console.error('Erro ao atualizar item:', error);
-      return { data: null, error };
+      return { data: null, error: 'Erro ao atualizar item' };
     }
   };
 
   const deleteStockItem = async (id: string) => {
-    if (!user) return { error: 'Usuário não autenticado' };
-    if (user.cargo !== 'admin') return { error: 'Apenas administradores podem excluir itens do estoque' };
+    if (!user || !userProfile) return { error: 'Usuário não autenticado' };
+    if (userProfile.role !== 'admin') return { error: 'Apenas administradores podem excluir itens do estoque' };
 
     try {
       const { error } = await supabase
@@ -143,23 +140,21 @@ export function useStockData() {
         .eq('id', id);
 
       if (error) {
-        console.error('Erro ao excluir item:', error);
-        return { error };
+        throw error;
       }
 
       await fetchStockItems();
       return { error: null };
     } catch (error) {
-      console.error('Erro ao excluir item:', error);
-      return { error };
+      return { error: 'Erro ao excluir item' };
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && userProfile) {
       fetchStockItems();
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   return {
     stockItems,

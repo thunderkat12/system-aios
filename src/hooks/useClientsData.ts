@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { clientSchema, ClientData } from '@/lib/validation';
-import { sanitizeString } from '@/lib/auth';
 
 export interface Client {
   id: string;
@@ -17,44 +16,47 @@ export interface Client {
   updated_at?: string;
 }
 
+// Sanitization function (XSS protection)
+const sanitizeString = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '').slice(0, 1000);
+};
+
 export function useClientsData() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useSupabaseAuth();
+  const { userProfile, user } = useAuth();
 
   const fetchClients = async () => {
-    if (!user) return { data: [], error: 'Usuário não autenticado' };
+    if (!user || !userProfile) return { data: [], error: 'Usuário não autenticado' };
     
     try {
       setIsLoading(true);
       
-      // Implement user-based access control
+      // Implement user-based access control using Supabase user ID
       let query = supabase.from('clientes').select('*');
       
       // Admins can see all clients, others only their own
-      if (user.cargo !== 'admin') {
+      if (userProfile.role !== 'admin') {
         query = query.eq('user_id', user.id);
       }
       
       const { data, error } = await query.order('nome');
 
       if (error) {
-        console.error('Erro ao buscar clientes:', error);
-        return { data: [], error };
+        throw error;
       }
 
       setClients(data || []);
       return { data: data || [], error: null };
     } catch (error) {
-      console.error('Erro ao buscar clientes:', error);
-      return { data: [], error };
+      return { data: [], error: 'Erro ao carregar clientes' };
     } finally {
       setIsLoading(false);
     }
   };
 
   const addClient = async (clientData: ClientData) => {
-    if (!user) return { data: null, error: 'Usuário não autenticado' };
+    if (!user || !userProfile) return { data: null, error: 'Usuário não autenticado' };
 
     try {
       // Validate input
@@ -67,7 +69,7 @@ export function useClientsData() {
         email: validatedData.email ? sanitizeString(validatedData.email) : null,
         endereco: validatedData.endereco ? sanitizeString(validatedData.endereco) : null,
         ativo: true,
-        user_id: user.id // Always associate with current user
+        user_id: user.id // Use Supabase user ID
       };
 
       const { data, error } = await supabase
@@ -77,27 +79,20 @@ export function useClientsData() {
         .single();
 
       if (error) {
-        console.error('Erro ao adicionar cliente:', error);
-        return { data: null, error };
+        throw error;
       }
 
       await fetchClients();
       return { data, error: null };
     } catch (error) {
-      console.error('Erro ao adicionar cliente:', error);
-      return { data: null, error };
+      return { data: null, error: 'Erro ao adicionar cliente' };
     }
   };
 
   const updateClient = async (id: string, clientData: Partial<ClientData>) => {
-    if (!user) return { data: null, error: 'Usuário não autenticado' };
+    if (!user || !userProfile) return { data: null, error: 'Usuário não autenticado' };
 
     try {
-      // Validate input if provided
-      if (Object.keys(clientData).length > 0) {
-        clientSchema.partial().parse(clientData);
-      }
-
       // Check if user owns this client or is admin
       const { data: existingClient } = await supabase
         .from('clientes')
@@ -109,11 +104,15 @@ export function useClientsData() {
         return { data: null, error: 'Cliente não encontrado' };
       }
 
-      if (user.cargo !== 'admin' && existingClient.user_id !== user.id) {
-        return { data: null, error: 'Acesso negado: você não pode editar este cliente' };
+      if (userProfile.role !== 'admin' && existingClient.user_id !== user.id) {
+        return { data: null, error: 'Acesso negado' };
       }
 
-      // Sanitize inputs
+      // Validate and sanitize inputs
+      if (Object.keys(clientData).length > 0) {
+        clientSchema.partial().parse(clientData);
+      }
+
       const sanitizedData: any = { updated_at: new Date().toISOString() };
       
       if (clientData.nome) sanitizedData.nome = sanitizeString(clientData.nome);
@@ -135,20 +134,18 @@ export function useClientsData() {
         .single();
 
       if (error) {
-        console.error('Erro ao atualizar cliente:', error);
-        return { data: null, error };
+        throw error;
       }
 
       await fetchClients();
       return { data, error: null };
     } catch (error) {
-      console.error('Erro ao atualizar cliente:', error);
-      return { data: null, error };
+      return { data: null, error: 'Erro ao atualizar cliente' };
     }
   };
 
   const deleteClient = async (id: string) => {
-    if (!user) return { error: 'Usuário não autenticado' };
+    if (!user || !userProfile) return { error: 'Usuário não autenticado' };
 
     try {
       // Check if user owns this client or is admin
@@ -162,8 +159,8 @@ export function useClientsData() {
         return { error: 'Cliente não encontrado' };
       }
 
-      if (user.cargo !== 'admin' && existingClient.user_id !== user.id) {
-        return { error: 'Acesso negado: você não pode excluir este cliente' };
+      if (userProfile.role !== 'admin' && existingClient.user_id !== user.id) {
+        return { error: 'Acesso negado' };
       }
 
       const { error } = await supabase
@@ -172,23 +169,21 @@ export function useClientsData() {
         .eq('id', id);
 
       if (error) {
-        console.error('Erro ao excluir cliente:', error);
-        return { error };
+        throw error;
       }
 
       await fetchClients();
       return { error: null };
     } catch (error) {
-      console.error('Erro ao excluir cliente:', error);
-      return { error };
+      return { error: 'Erro ao excluir cliente' };
     }
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && userProfile) {
       fetchClients();
     }
-  }, [user]);
+  }, [user, userProfile]);
 
   return {
     clients,

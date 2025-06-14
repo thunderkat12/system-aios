@@ -10,9 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Users, Plus, Trash2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { userRegisterSchema } from '@/lib/validation';
-import { hashPassword, sanitizeEmail, sanitizeString } from '@/lib/auth';
 
 interface Usuario {
   id: string;
@@ -22,6 +21,15 @@ interface Usuario {
   ativo: boolean;
   created_at: string;
 }
+
+// Sanitization function (XSS protection)
+const sanitizeString = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '').slice(0, 1000);
+};
+
+const sanitizeEmail = (email: string): string => {
+  return email.toLowerCase().trim();
+};
 
 export function UserManagement() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -36,14 +44,14 @@ export function UserManagement() {
   });
 
   const { toast } = useToast();
-  const { user, logActivity } = useSupabaseAuth();
+  const { userProfile, signUp } = useAuth();
 
   useEffect(() => {
     loadUsuarios();
   }, []);
 
   const loadUsuarios = async () => {
-    if (!user || user.cargo !== 'admin') {
+    if (!userProfile || userProfile.role !== 'admin') {
       toast({
         title: "Acesso negado",
         description: "Apenas administradores podem gerenciar usuários",
@@ -60,13 +68,7 @@ export function UserManagement() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao carregar usuários:', error);
-        toast({
-          title: "Erro",
-          description: "Erro ao carregar lista de usuários",
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
 
       const usuariosTyped: Usuario[] = (data || []).map(user => ({
@@ -76,7 +78,11 @@ export function UserManagement() {
 
       setUsuarios(usuariosTyped);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar lista de usuários",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +91,7 @@ export function UserManagement() {
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || user.cargo !== 'admin') {
+    if (!userProfile || userProfile.role !== 'admin') {
       toast({
         title: "Acesso negado",
         description: "Apenas administradores podem gerenciar usuários",
@@ -104,37 +110,13 @@ export function UserManagement() {
     }
 
     try {
-      // Validate input
-      const validationData = {
-        nome_completo: formData.nome_completo,
-        email: formData.email,
-        senha: formData.senha,
-        cargo: formData.cargo
-      };
-
-      if (editingUser && !formData.senha) {
-        // For updates without password change, remove senha from validation
-        delete (validationData as any).senha;
-        userRegisterSchema.omit({ senha: true }).parse(validationData);
-      } else {
-        userRegisterSchema.parse(validationData);
-      }
-
-      // Sanitize inputs
-      const sanitizedEmail = sanitizeEmail(formData.email);
-      const sanitizedNome = sanitizeString(formData.nome_completo);
-
       if (editingUser) {
-        // Atualizar usuário existente
+        // Update existing user in our usuarios table
         const updateData: any = {
-          nome_completo: sanitizedNome,
-          email: sanitizedEmail,
+          nome_completo: sanitizeString(formData.nome_completo),
+          email: sanitizeEmail(formData.email),
           cargo: formData.cargo,
         };
-
-        if (formData.senha) {
-          updateData.senha_hash = await hashPassword(formData.senha);
-        }
 
         const { error } = await supabase
           .from('usuarios')
@@ -148,38 +130,29 @@ export function UserManagement() {
           throw error;
         }
 
-        await logActivity('update_user', `Usuário ${sanitizedNome} foi atualizado`);
-        
         toast({
           title: "Sucesso",
           description: "Usuário atualizado com sucesso",
         });
       } else {
-        // Criar novo usuário
-        const hashedPassword = await hashPassword(formData.senha);
+        // Validate input for new user
+        userRegisterSchema.parse(formData);
 
-        const { error } = await supabase
-          .from('usuarios')
-          .insert({
-            nome_completo: sanitizedNome,
-            email: sanitizedEmail,
-            senha_hash: hashedPassword,
-            cargo: formData.cargo,
-            ativo: true
-          });
+        // Create new user using Supabase Auth
+        const result = await signUp(
+          sanitizeEmail(formData.email),
+          formData.senha,
+          sanitizeString(formData.nome_completo),
+          formData.cargo
+        );
 
-        if (error) {
-          if (error.code === '23505') {
-            throw new Error('Este email já está cadastrado');
-          }
-          throw error;
+        if (!result.success) {
+          throw new Error(result.error || 'Erro ao criar usuário');
         }
 
-        await logActivity('create_user', `Novo usuário ${sanitizedNome} foi criado`);
-        
         toast({
           title: "Sucesso",
-          description: "Usuário criado com sucesso",
+          description: "Usuário criado com sucesso. Verifique o email para ativação.",
         });
       }
 
@@ -188,7 +161,6 @@ export function UserManagement() {
       setFormData({ nome_completo: '', email: '', senha: '', cargo: '' as any });
       loadUsuarios();
     } catch (error: any) {
-      console.error('Erro ao salvar usuário:', error);
       toast({
         title: "Erro",
         description: error.message || "Erro ao salvar usuário",
@@ -198,7 +170,7 @@ export function UserManagement() {
   };
 
   const handleDeleteUser = async (usuario: Usuario) => {
-    if (!user || user.cargo !== 'admin') {
+    if (!userProfile || userProfile.role !== 'admin') {
       toast({
         title: "Acesso negado",
         description: "Apenas administradores podem excluir usuários",
@@ -207,7 +179,7 @@ export function UserManagement() {
       return;
     }
 
-    if (usuario.id === user.id) {
+    if (usuario.id === userProfile.id) {
       toast({
         title: "Erro",
         description: "Você não pode excluir sua própria conta",
@@ -226,8 +198,6 @@ export function UserManagement() {
         throw error;
       }
 
-      await logActivity('delete_user', `Usuário ${usuario.nome_completo} foi excluído`);
-      
       toast({
         title: "Sucesso",
         description: "Usuário excluído com sucesso",
@@ -235,7 +205,6 @@ export function UserManagement() {
 
       loadUsuarios();
     } catch (error: any) {
-      console.error('Erro ao excluir usuário:', error);
       toast({
         title: "Erro",
         description: "Erro ao excluir usuário",
@@ -279,7 +248,7 @@ export function UserManagement() {
     }
   };
 
-  if (!user || user.cargo !== 'admin') {
+  if (!userProfile || userProfile.role !== 'admin') {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -343,7 +312,8 @@ export function UserManagement() {
                   value={formData.senha}
                   onChange={(e) => setFormData(prev => ({ ...prev, senha: e.target.value }))}
                   required={!editingUser}
-                  minLength={6}
+                  minLength={12}
+                  placeholder="Mínimo 12 caracteres com maiúscula, minúscula, número e símbolo"
                 />
               </div>
               <div className="space-y-2">
@@ -421,7 +391,7 @@ export function UserManagement() {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    {usuario.id !== user?.id && (
+                    {usuario.id !== userProfile?.id && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button size="sm" variant="outline">
