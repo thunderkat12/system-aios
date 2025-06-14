@@ -152,16 +152,37 @@ export function useSupabaseDashboard() {
     const dashboardData = {
       timestamp: new Date().toISOString(),
       data_hora_envio: new Date().toLocaleString('pt-BR'),
-      clientes_ativos: stats.activeClients,
-      os_abertas: stats.openOS,
-      os_finalizadas: stats.completedOS,
-      faturamento_total: `R$ ${stats.revenue.toLocaleString('pt-BR')}`,
-      estoque_baixo: stats.lowStockItems,
-      tempo_medio_reparo: stats.averageTime,
-      tecnicos_responsaveis: stats.technicians,
-      ultimas_atividades: stats.recentActivities,
-      empresa: "Hi-Tech Soluções"
+      empresa: "Hi-Tech Soluções em Informática",
+      resumo_diario: {
+        clientes_ativos: stats.activeClients,
+        os_abertas: stats.openOS,
+        os_finalizadas: stats.completedOS,
+        faturamento_total: `R$ ${stats.revenue.toLocaleString('pt-BR')}`,
+        faturamento_valor: stats.revenue,
+        estoque_baixo: stats.lowStockItems,
+        tempo_medio_reparo: stats.averageTime
+      },
+      tecnicos_responsaveis: stats.technicians.map(tech => ({
+        nome: tech.name,
+        os_ativas: tech.activeJobs,
+        os_finalizadas: tech.completedJobs,
+        total_os: tech.activeJobs + tech.completedJobs
+      })),
+      ultimas_atividades: stats.recentActivities.map(activity => ({
+        tipo: activity.type,
+        descricao: activity.description,
+        tempo: activity.time
+      })),
+      metricas_adicionais: {
+        total_os_sistema: stats.openOS + stats.completedOS,
+        percentual_finalizadas: stats.completedOS > 0 ? 
+          ((stats.completedOS / (stats.openOS + stats.completedOS)) * 100).toFixed(1) + '%' : '0%',
+        media_os_por_tecnico: stats.technicians.length > 0 ? 
+          (stats.technicians.reduce((sum, tech) => sum + tech.activeJobs + tech.completedJobs, 0) / stats.technicians.length).toFixed(1) : '0'
+      }
     };
+
+    console.log("Enviando dados para webhook:", dashboardData);
 
     try {
       const response = await fetch(webhookUrl, {
@@ -172,7 +193,14 @@ export function useSupabaseDashboard() {
         body: JSON.stringify(dashboardData),
       });
 
-      return response.ok;
+      const success = response.ok;
+      console.log("Resposta do webhook:", {
+        status: response.status,
+        statusText: response.statusText,
+        success
+      });
+
+      return success;
     } catch (error) {
       console.error("Erro ao enviar webhook:", error);
       return false;

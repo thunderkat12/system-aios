@@ -18,6 +18,8 @@ export function Dashboard({ onViewChange }: DashboardProps) {
 
   const handleSendWebhook = async () => {
     setIsSendingWebhook(true);
+    console.log("Iniciando envio de webhook para n8n...");
+    
     try {
       const success = await sendWebhookData();
       
@@ -28,7 +30,10 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           : "Falha ao enviar dados para o webhook",
         variant: success ? "default" : "destructive",
       });
+
+      console.log("Resultado do webhook:", success ? "Sucesso" : "Falha");
     } catch (error) {
+      console.error("Erro no envio do webhook:", error);
       toast({
         title: "Erro no envio",
         description: "Falha ao conectar com o webhook",
@@ -117,6 +122,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           <Button 
             onClick={handleSendWebhook}
             disabled={isSendingWebhook}
+            className="bg-blue-600 hover:bg-blue-700"
           >
             <Send className="h-4 w-4 mr-2" />
             {isSendingWebhook ? "Enviando..." : "Enviar Webhook"}
