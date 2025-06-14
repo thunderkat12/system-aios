@@ -59,7 +59,13 @@ export function UserManagement() {
         return;
       }
 
-      setUsuarios(data || []);
+      // Type casting para garantir compatibilidade
+      const usuariosTyped = (data || []).map(user => ({
+        ...user,
+        cargo: user.cargo as 'admin' | 'tecnico' | 'atendente'
+      }));
+
+      setUsuarios(usuariosTyped);
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
     } finally {

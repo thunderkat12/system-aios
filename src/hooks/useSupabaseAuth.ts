@@ -65,12 +65,12 @@ export function useSupabaseAuth() {
         throw new Error('Senha incorreta');
       }
 
-      // Salvar dados da sessão
+      // Salvar dados da sessão com type casting
       const userData: User = {
         id: usuario.id,
         nome_completo: usuario.nome_completo,
         email: usuario.email,
-        cargo: usuario.cargo,
+        cargo: usuario.cargo as 'admin' | 'tecnico' | 'atendente',
         ativo: usuario.ativo
       };
 
