@@ -181,7 +181,9 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                   <FileText className="h-4 w-4 text-primary" />
                   <div className="flex-1">
                     <p className="text-sm font-medium">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground">Atividade do sistema</p>
+                    <p className="text-xs text-muted-foreground">
+                      {activity.user ? `Usuário: ${activity.user}` : "Atividade do sistema"}
+                    </p>
                   </div>
                   <span className="text-xs text-muted-foreground">{activity.time}</span>
                 </div>
@@ -196,3 +198,4 @@ export function Dashboard({ onViewChange }: DashboardProps) {
     </div>
   );
 }
+

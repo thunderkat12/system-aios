@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardStats {
   activeClients: number;
@@ -19,6 +19,7 @@ interface DashboardStats {
     type: string;
     description: string;
     time: string;
+    user: string;
   }>;
 }
 
@@ -35,6 +36,7 @@ export function useSupabaseDashboard() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -108,7 +110,8 @@ export function useSupabaseDashboard() {
         id: atividade.id,
         type: atividade.tipo,
         description: atividade.descricao,
-        time: getTimeAgo(atividade.created_at || '')
+        time: getTimeAgo(atividade.created_at || ''),
+        user: atividade.usuario_nome || 'Sistema',
       })) || [];
 
       // Calcular tempo médio de reparo
@@ -179,14 +182,28 @@ export function useSupabaseDashboard() {
     }
   };
 
+  // Atualizar cada 30 segundos
   useEffect(() => {
     fetchDashboardData();
+
+    const interval = setInterval(() => {
+      setLastRefresh(Date.now());
+      fetchDashboardData();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // Permite refresh imediato ao disparar alguma ação
+  const refreshData = () => {
+    setLastRefresh(Date.now());
+    fetchDashboardData();
+  };
 
   return {
     stats,
     isLoading,
-    refreshData: fetchDashboardData,
+    refreshData,
     sendWebhookData
   };
 }
